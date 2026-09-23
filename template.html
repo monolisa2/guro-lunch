@@ -1079,14 +1079,16 @@ function renderHof(){
 }
 
 /* ======================= 리스트 ======================= */
-const KINDS = ['전체','밥집','회식','카페','패스트푸드','구내식당'];
+const KINDS = ['전체','밥집','샐러드','카페','패스트푸드','구내식당','회식'];
+const isSalad = r => r.c==='샐러드' || /샐러드|포케|poke|salad/i.test(r.n);
 let state = {kind:'전체', q:'', sort:'dist', cat:'', dist:520, price:25000, fresh:false, limit:30};
 document.getElementById('cat').innerHTML = '<option value="">전체 카테고리</option>' + [...new Set(L.map(r=>r.c))].sort((a,b)=>a.localeCompare(b,'ko')).map(c=>`<option value="${c}">${emo(c)} ${c}</option>`).join('');
 const newCnt = L.filter(r=>r.nw).length;
-document.getElementById('kinds').innerHTML = KINDS.map(k=>`<button class="chip${k==='전체'?' on':''}${k==='회식'?' hs':''}" data-k="${k}">${k==='회식'?'🍻 회식':k}</button>`).join('') + (newCnt?`<button class="chip alt2" id="chipNew">🆕 신규 ${newCnt}</button>`:'');
+document.getElementById('kinds').innerHTML = KINDS.map(k=>`<button class="chip${k==='전체'?' on':''}${k==='회식'?' hs':''}" data-k="${k}">${k==='회식'?'🍻 회식':k==='샐러드'?'🥗 샐러드':k}</button>`).join('') + (newCnt?`<button class="chip alt2" id="chipNew">🆕 신규 ${newCnt}</button>`:'');
 function filtered(){
   let a = L.filter(r=>{
     if(state.kind==='회식'){ if(!(r.k==='회식' || r.hs)) return false; }
+    else if(state.kind==='샐러드'){ if(!isSalad(r)) return false; }
     else if(state.kind!=='전체' && r.k!==state.kind) return false;
     if(state.cat && r.c!==state.cat) return false;
     if(r.d > state.dist) return false;
