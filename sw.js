@@ -1,5 +1,5 @@
 // 구로 점심지도 서비스워커
-const VER = 'v1';
+const VER = 'v2';
 const SHELL = 'gl-shell-' + VER, IMG = 'gl-img-' + VER;
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => !k.endsWith(VER)).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -11,7 +11,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.open(SHELL).then(async cache => {
       const key = url.origin + url.pathname; // 쿼리/해시 무시
       const cached = await cache.match(key);
-      const net = fetch(req).then(async res => { if (res && res.ok) { const fresh = res.clone(); if (cached) { const [a, b] = await Promise.all([cached.clone().text(), res.clone().text()]); if (a !== b) { self.clients.matchAll({ type: 'window' }).then(cs => cs.forEach(c => c.postMessage({ type: 'new-version' }))); } } cache.put(key, fresh); } return res; }).catch(() => null);
+      const net = fetch(new Request(key, { cache: 'no-cache', credentials: 'same-origin' })).then(async res => { if (res && res.ok) { const fresh = res.clone(); if (cached) { const [a, b] = await Promise.all([cached.clone().text(), res.clone().text()]); if (a !== b) { self.clients.matchAll({ type: 'window' }).then(cs => cs.forEach(c => c.postMessage({ type: 'new-version' }))); } } cache.put(key, fresh); } return res; }).catch(() => null);
       return cached || (await net) || new Response('오프라인이에요. 네트워크 연결 후 다시 열어주세요.', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
     }));
     return;
