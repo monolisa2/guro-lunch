@@ -153,7 +153,9 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .pickbody{display:flex;flex-direction:column;justify-content:center;min-width:0}
 .pickname{font-size:27px;font-weight:800;letter-spacing:-1px;line-height:1.15;word-break:keep-all}
 @media(min-width:680px){.pickname{font-size:34px}}
-.pickmeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.pickmeta{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin-top:10px;padding-bottom:3px;scrollbar-width:none;-webkit-overflow-scrolling:touch;mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent)}
+.pickmeta::-webkit-scrollbar{display:none}
+.pickmeta .tag{flex:none}
 .tag{font-size:11.5px;padding:5px 10px;border-radius:9px;background:var(--soft);border:1px solid var(--line);color:var(--tx2);font-weight:600;white-space:nowrap}
 .tag.hot{background:var(--t-hot-bg);border-color:var(--t-hot-bd);color:var(--t-hot-tx)}
 .tag.near{background:var(--t-near-bg);border-color:var(--t-near-bd);color:var(--t-near-tx)}
@@ -670,10 +672,10 @@ function renderToday(){
   const rt = rating(r), meta = [];
   meta.push(`<span class="tag">${emo(r.c)} ${r.c}</span>`);
   meta.push(`<span class="tag near">🚶 ${distTxt(r.d)}</span>`);
-  if(rt) meta.push(`<span class="tag ${rt.src==='naver'?'nv':'hot'}">★ ${rt.v} ${rt.src==='naver'?'(네이버)':'(카카오)'}</span>`);
+  if(rt) meta.push(`<span class="tag ${rt.src==='naver'?'nv':'hot'}">★ ${rt.v} ${rt.src==='naver'?'네이버':'카카오'}</span>`);
   if(r.pr) meta.push(`<span class="tag">💸 ${won(r.pr)}</span>`);
   if(RK[r.id]) meta.push(`<span class="tag hot">🏆 이달 ${RK[r.id]}위</span>`);
-  if(TODAY.wcats.includes(r.c)) meta.push(`<span class="tag wx">${WX?WX.icon:''} 오늘 날씨 맞춤</span>`);
+  if(TODAY.wcats.includes(r.c)) meta.unshift(`<span class="tag wx">${WX?WX.icon:''} 오늘 날씨 맞춤</span>`);
   document.getElementById('pkMeta').innerHTML = meta.join('');
   const cands = (r.m||[]).filter(m=>m.p>=4000&&m.p<=20000);
   const mm = cands.length ? cands[Math.floor(TODAY.rnd()*cands.length)] : ((r.m||[])[0]||{n:'–',p:0,d:''});
