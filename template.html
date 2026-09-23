@@ -103,6 +103,13 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .wxchip.g b,.wxchip.y b,.wxchip.r b{color:inherit}
 .wxtip{margin-top:12px;background:var(--inset);border:1px solid var(--line);border-radius:13px;padding:10px 13px;font-size:13px;line-height:1.5}
 .wxtip b{color:var(--ac)}
+.wxtip:before{content:"🍽️ 오늘의 한 줄";display:block;font-size:11px;font-weight:800;color:var(--tx3);letter-spacing:.3px;margin-bottom:4px}
+@media(min-width:768px){
+  .wx{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:stretch;padding:16px 18px}
+  .wxleft{min-width:0}
+  .wxtip{margin-top:0;display:flex;flex-direction:column;justify-content:center;font-size:16px;line-height:1.55;padding:16px 20px;border-radius:16px}
+  .wxtip:before{font-size:11.5px;margin-bottom:8px}
+}
 
 /* ================= HERO ================= */
 .hero{margin-top:12px;background:var(--hero);border:1px solid var(--line2);border-radius:22px;padding:17px;box-shadow:var(--shadow)}
@@ -385,14 +392,16 @@ footer{margin-top:36px;padding:20px 0;border-top:1px solid var(--line);color:var
   </div>
 
   <div class="wx" id="wx">
-    <div class="wxtop">
-      <div class="wxico" id="wxIco">⏳</div>
-      <div class="wxmain">
-        <div class="wxtemp" id="wxTemp">불러오는 중…</div>
-        <div class="wxdesc" id="wxDesc">구로디지털단지 날씨</div>
+    <div class="wxleft">
+      <div class="wxtop">
+        <div class="wxico" id="wxIco">⏳</div>
+        <div class="wxmain">
+          <div class="wxtemp" id="wxTemp">불러오는 중…</div>
+          <div class="wxdesc" id="wxDesc">구로디지털단지 날씨</div>
+        </div>
       </div>
+      <div class="wxchips" id="wxChips"></div>
     </div>
-    <div class="wxchips" id="wxChips"></div>
     <div class="wxtip" id="wxTip">날씨를 확인해서 오늘 어울리는 메뉴를 골라줄게.</div>
   </div>
 
