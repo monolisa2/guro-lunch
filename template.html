@@ -14,6 +14,11 @@
 try{ if(localStorage.getItem('gl_theme')!=='light') document.documentElement.classList.add('dark'); }catch(e){ document.documentElement.classList.add('dark'); }
 </script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://guro-lunch-default-rtdb.asia-southeast1.firebasedatabase.app">
+<link rel="preconnect" href="https://api.open-meteo.com">
+<link rel="dns-prefetch" href="https://t1.daumcdn.net">
+<link rel="dns-prefetch" href="https://postfiles.pstatic.net">
+<link rel="dns-prefetch" href="https://ldb-phinf.pstatic.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 /* ================= THEME ================= */
@@ -734,6 +739,7 @@ const WX_RULES = [
 ];
 const wxRule = () => WX ? WX_RULES.find(r=>r.test(WX)) : null;
 async function loadWeather(){
+  try{ const c = JSON.parse(LS.get('gl_wx')||'null'); if(c && Date.now()-c.t < 15*60e3 && c.wx){ WX = c.wx; renderWeather(); renderToday(); if(Date.now()-c.t < 5*60e3) return; } }catch(e){}
   try{
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&forecast_days=2`;
     const aq = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${C.lat}&longitude=${C.lon}&current=pm10,pm2_5&timezone=Asia%2FSeoul`;
@@ -742,7 +748,8 @@ async function loadWeather(){
     WX = { t:Math.round(c.temperature_2m), at:Math.round(c.apparent_temperature), hum:c.relative_humidity_2m, wind:Math.round(c.wind_speed_10m), label:wc[0], icon:wc[1], kind:wc[2],
            tmax:Math.round(d.temperature_2m_max[0]), tmin:Math.round(d.temperature_2m_min[0]), pop:d.precipitation_probability_max[0], pm10:r2?.current?.pm10 ?? null, pm25:r2?.current?.pm2_5 ?? null,
            hours:(function(){ const h=r1.hourly; if(!h) return null; const now=new Date(); const useTomorrow = now.getHours()>=15; const day = useTomorrow ? 1 : 0; const out=[]; for(const hr of [11,12,13,14]){ const idx = day*24+hr; if(h.time[idx]===undefined) continue; out.push({hr, t:Math.round(h.temperature_2m[idx]), code:h.weather_code[idx], pop:h.precipitation_probability[idx] ?? 0}); } return {tomorrow:useTomorrow, list:out}; })() };
-  }catch(e){ WX = null; }
+    LS.set('gl_wx', JSON.stringify({ t: Date.now(), wx: WX }));
+  }catch(e){ if(!WX) WX = null; }
   renderWeather(); renderToday();
 }
 function pmLabel(v, type){ if(v==null) return null; const th = type==='pm25' ? [15,35,75] : [30,80,150]; if(v<=th[0]) return ['좋음','g']; if(v<=th[1]) return ['보통','']; if(v<=th[2]) return ['나쁨','y']; return ['매우나쁨','r']; }
@@ -890,8 +897,8 @@ let STORE = { comments:{}, reactions:{}, visits:{}, requests:{}, clikes:{}, poll
 let CMTCNT = {}, RK = {};
 
 async function loadAll(){
-  const [c, r, v, q, cl, po, vo] = await Promise.all([fbGet('/comments'), fbGet('/reactions'), fbGet('/visits'), fbGet('/requests'), fbGet('/clikes'), fbGet('/polls'), fbGet('/votes')]);
-  STORE = { comments: c||{}, reactions: r||{}, visits: v||{}, requests: q||{}, clikes: cl||{}, polls: po||{}, votes: vo||{} };
+  const all = await fbGet('') || {};
+  STORE = { comments: all.comments||{}, reactions: all.reactions||{}, visits: all.visits||{}, requests: all.requests||{}, clikes: all.clikes||{}, polls: all.polls||{}, votes: all.votes||{} };
   renderPolls(); renderHof();
   if(document.getElementById('reqList')) renderReqList();
   CMTCNT = {}; const flat = [];
@@ -1500,6 +1507,14 @@ renderToday(); render(); renderRanking(); renderHof();
 loadWeather();
 loadAll().then(()=>renderToday());
 setInterval(loadAll, 60000);
+// 서비스워커: 두 번째 방문부터 즉시 표시, 뒤에서 새 버전 받아두고 알림
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  const showNew = ()=>{ const t=document.getElementById('toast'); t.innerHTML='새 버전이 있어요 · <b style="text-decoration:underline">지금 새로고침</b>'; t.style.pointerEvents='auto'; t.classList.add('on'); t.onclick=()=>location.reload(); clearTimeout(t._t); t._t=setTimeout(()=>{ t.classList.remove('on'); t.style.pointerEvents=''; t.onclick=null; }, 10000); };
+  navigator.serviceWorker.addEventListener('message', e=>{ if(e.data && e.data.type==='new-version') showNew(); });
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    reg.addEventListener('updatefound', ()=>{ const nw = reg.installing; nw && nw.addEventListener('statechange', ()=>{ if(nw.state==='installed' && navigator.serviceWorker.controller) showNew(); }); });
+  }).catch(()=>{});
+}
 </script>
 </body>
 </html>
