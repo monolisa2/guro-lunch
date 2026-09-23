@@ -192,7 +192,8 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .radarbox svg{width:100%;height:auto;display:block}
 .rlegend{display:flex;gap:11px;flex-wrap:wrap;font-size:10.5px;color:var(--tx3);margin-top:9px}
 .rlegend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
-.feedlist{display:flex;flex-direction:column;gap:9px}
+.feedlist{display:grid;grid-template-columns:1fr;gap:9px}
+@media(min-width:700px){.feedlist{grid-template-columns:1fr 1fr}}
 .fitem{display:flex;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:10px 12px;cursor:pointer}
 .fitem:active{background:var(--soft2)}
 .fav{width:34px;height:34px;border-radius:50%;background:var(--card2);display:grid;place-items:center;font-size:18px;flex:none}
@@ -201,7 +202,7 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .fmeta .shop{color:var(--tx);font-weight:800;font-size:13.5px;letter-spacing:-.2px}
 .fmeta .shop:after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--ac);margin-left:6px;vertical-align:middle}
 .fmeta .nick{color:var(--tx2);font-weight:500}
-.ftext{font-size:13.5px;margin-top:3px;line-height:1.45;word-break:break-word}
+.ftext{font-size:13.5px;margin-top:3px;line-height:1.45;word-break:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* ================= LIST CONTROLS ================= */
 .sec{margin-top:26px}
@@ -485,7 +486,8 @@ const FB = 'https://guro-lunch-default-rtdb.asia-southeast1.firebasedatabase.app
 const EMO = {'한식':'🍚','찌개,전골':'🍲','국밥':'🍜','해장국':'🍲','곰탕':'🍲','칼국수':'🍜','국수':'🍜','냉면':'🍜','분식':'🍢','떡볶이':'🍢','돈까스,우동':'🍛','일식':'🍣','초밥,롤':'🍣','일본식라면':'🍜','일식집':'🍣','참치회':'🍣','회':'🐟','해물,생선':'🐟','추어':'🐟','아구':'🐟','중국요리':'🥟','중식':'🥟','양꼬치':'🍢','양식':'🍝','이탈리안':'🍝','피자':'🍕','스테이크,립':'🥩','육류,고기':'🥩','정육식당':'🥩','갈비':'🥩','삼겹살':'🥩','불고기,두루치기':'🥩','족발,보쌈':'🥓','곱창,막창':'🥓','감자탕':'🍲','삼계탕':'🍗','닭요리':'🍗','치킨':'🍗','햄버거':'🍔','패스트푸드':'🍔','샌드위치':'🥪','샐러드':'🥗','베트남음식':'🍜','동남아음식':'🍛','아시아음식':'🍛','퓨전요리':'🍽️','멕시칸,브라질':'🌮','도시락':'🍱','김밥':'🍙','한식뷔페':'🍱','뷔페':'🍱','한정식':'🍱','구내식당':'🍱','커피전문점':'☕','카페':'☕','디저트카페':'🍰','제과,베이커리':'🥐','전통찻집':'🍵','북카페':'📖','호프,요리주점':'🍺','실내포장마차':'🍺','일본식주점':'🍶','샤브샤브':'🍲','두부전문점':'🍲','순대':'🍲','음식점':'🍽️'};
 const emo = c => EMO[c] || '🍽️';
 const won = n => n ? n.toLocaleString('ko-KR') + '원' : '–';
-const walk = m => Math.max(1, Math.round(m / 67)) + '분';
+const walk = m => m<=30 ? '건물 안' : Math.max(1, Math.round(m / 67)) + '분';
+const distTxt = m => m<=30 ? '건물 안' : `${m}m · ${walk(m)}`;
 const naverUrl = r => r.nid ? 'https://map.naver.com/p/entry/place/' + r.nid : 'https://map.naver.com/p/search/' + encodeURIComponent(r.n);
 const rating = r => r.nsc ? {v:r.nsc, src:'naver'} : (r.s ? {v:r.s, src:'kakao'} : null);
 const esc = s => String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -605,9 +607,8 @@ function renderToday(){
   document.getElementById('pkName').textContent = r.n;
   const rt = rating(r), meta = [];
   meta.push(`<span class="tag">${emo(r.c)} ${r.c}</span>`);
-  meta.push(`<span class="tag near">🚶 ${r.d}m · ${walk(r.d)}</span>`);
+  meta.push(`<span class="tag near">🚶 ${distTxt(r.d)}</span>`);
   if(rt) meta.push(`<span class="tag ${rt.src==='naver'?'nv':'hot'}">★ ${rt.v} ${rt.src==='naver'?'(네이버)':'(카카오)'}</span>`);
-  if(r.nvr) meta.push(`<span class="tag nv">방문리뷰 ${r.nvr.toLocaleString()}</span>`);
   if(r.pr) meta.push(`<span class="tag">💸 ${won(r.pr)}</span>`);
   if(RK[r.id]) meta.push(`<span class="tag hot">🏆 이달 ${RK[r.id]}위</span>`);
   if(TODAY.wcats.includes(r.c)) meta.push(`<span class="tag wx">${WX?WX.icon:''} 오늘 날씨 맞춤</span>`);
@@ -771,10 +772,10 @@ function card(r){
     </div>
     <div class="bd">
       <div class="nm">${esc(r.n)}</div>
-      <div class="ct">${emo(r.c)} ${r.c} · 도보 ${walk(r.d)}</div>
+      <div class="ct">${emo(r.c)} ${r.c} · ${r.d<=30?'건물 안':'도보 '+walk(r.d)}</div>
       ${rep?`<div class="repm">${esc(rep.n)} ${won(rep.p)}</div>`:''}
       <div class="mrow">
-        <div class="star ${rt&&rt.src==='naver'?'nv':''}">${rt?`★ ${rt.v}`:'<em>평점없음</em>'} ${r.nvr?`<em>리뷰 ${r.nvr>999?(r.nvr/1000).toFixed(1)+'k':r.nvr}</em>`:''}</div>
+        <div class="star ${rt&&rt.src==='naver'?'nv':''}">${rt?`★ ${rt.v} <em>${rt.src==='naver'?'네이버':'카카오'}</em>`:'<em>평점없음</em>'}</div>
         <div class="prc">${r.pr?won(r.pr):'<small>미등록</small>'}</div>
       </div>
     </div>
@@ -807,10 +808,8 @@ function openModal(r){
       <h3>${esc(r.n)}</h3>
       <div class="mm">
         <span class="tag">${emo(r.c)} ${r.c}</span>
-        <span class="tag near">🚶 ${r.d}m · ${walk(r.d)}</span>
+        <span class="tag near">🚶 ${distTxt(r.d)}</span>
         ${rt?`<span class="tag ${rt.src==='naver'?'nv':'hot'}">★ ${rt.v} ${rt.src==='naver'?'네이버':'카카오'}</span>`:''}
-        ${r.nvr?`<span class="tag nv">방문 ${r.nvr.toLocaleString()}</span>`:''}
-        ${r.nbr?`<span class="tag nv">블로그 ${r.nbr.toLocaleString()}</span>`:''}
         ${RK[r.id]?`<span class="tag hot">🏆 이달 ${RK[r.id]}위</span>`:''}
         ${r.nw?`<span class="tag hot">🆕 신규</span>`:''}
       </div>
