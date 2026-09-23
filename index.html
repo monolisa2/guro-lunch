@@ -105,11 +105,22 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .wxtip b{color:var(--ac)}
 .wxlbl{font-size:11px;font-weight:800;color:var(--tx3);letter-spacing:.3px;margin-bottom:4px}
 .wxtip #wxTip{word-break:keep-all}
+.wxhours{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.wxhours .hl{grid-column:1/-1;font-size:11px;font-weight:800;color:var(--tx3);letter-spacing:.3px;margin-bottom:-2px}
+.wxh{background:var(--inset);border:1px solid var(--line);border-radius:12px;padding:8px 4px;text-align:center;min-width:0}
+.wxh .t{font-size:11px;color:var(--tx3);font-weight:700}
+.wxh .i{font-size:22px;line-height:1.2;margin:3px 0}
+.wxh .c{font-size:14px;font-weight:800}
+.wxh .p{font-size:10.5px;color:var(--t-near-tx);font-weight:700;margin-top:1px}
+.wxh .p.rain{color:var(--t-r)}
+.wxh.now{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac)}
 @media(min-width:768px){
-  .wx{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:stretch;padding:16px 18px}
-  .wxleft{min-width:0}
-  .wxtip{margin-top:0;display:flex;flex-direction:column;justify-content:center;font-size:16px;line-height:1.55;padding:16px 20px;border-radius:16px}
-  .wxlbl{font-size:11.5px;margin-bottom:8px}
+  .wx{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:stretch;padding:16px 18px}
+  .wxleft{min-width:0;display:flex;flex-direction:column;justify-content:center}
+  .wxright{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .wxtip{margin-top:0;flex:1;display:flex;flex-direction:column;justify-content:center;font-size:15.5px;line-height:1.55;padding:14px 18px;border-radius:16px}
+  .wxlbl{font-size:11.5px;margin-bottom:6px}
+  .wxhours{margin-top:0}
 }
 
 /* ================= HERO ================= */
@@ -403,7 +414,10 @@ footer{margin-top:36px;padding:20px 0;border-top:1px solid var(--line);color:var
       </div>
       <div class="wxchips" id="wxChips"></div>
     </div>
-    <div class="wxtip"><div class="wxlbl">🍽️ 오늘의 한 줄</div><div id="wxTip">날씨를 확인해서 오늘 어울리는 메뉴를 골라줄게.</div></div>
+    <div class="wxright">
+      <div class="wxtip"><div class="wxlbl">🍽️ 오늘의 한 줄</div><div id="wxTip">날씨를 확인해서 오늘 어울리는 메뉴를 골라줄게.</div></div>
+      <div class="wxhours" id="wxHours"></div>
+    </div>
   </div>
 
   <div class="hero">
@@ -574,12 +588,13 @@ const WX_RULES = [
 const wxRule = () => WX ? WX_RULES.find(r=>r.test(WX)) : null;
 async function loadWeather(){
   try{
-    const u = `https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&forecast_days=1`;
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&forecast_days=2`;
     const aq = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${C.lat}&longitude=${C.lon}&current=pm10,pm2_5&timezone=Asia%2FSeoul`;
     const [r1,r2] = await Promise.all([fetch(u).then(r=>r.json()), fetch(aq).then(r=>r.json()).catch(()=>null)]);
     const c = r1.current, d = r1.daily, wc = WXC[c.weather_code] || ['–','🌡️','cloud'];
     WX = { t:Math.round(c.temperature_2m), at:Math.round(c.apparent_temperature), hum:c.relative_humidity_2m, wind:Math.round(c.wind_speed_10m), label:wc[0], icon:wc[1], kind:wc[2],
-           tmax:Math.round(d.temperature_2m_max[0]), tmin:Math.round(d.temperature_2m_min[0]), pop:d.precipitation_probability_max[0], pm10:r2?.current?.pm10 ?? null, pm25:r2?.current?.pm2_5 ?? null };
+           tmax:Math.round(d.temperature_2m_max[0]), tmin:Math.round(d.temperature_2m_min[0]), pop:d.precipitation_probability_max[0], pm10:r2?.current?.pm10 ?? null, pm25:r2?.current?.pm2_5 ?? null,
+           hours:(function(){ const h=r1.hourly; if(!h) return null; const now=new Date(); const useTomorrow = now.getHours()>=15; const day = useTomorrow ? 1 : 0; const out=[]; for(const hr of [11,12,13,14]){ const idx = day*24+hr; if(h.time[idx]===undefined) continue; out.push({hr, t:Math.round(h.temperature_2m[idx]), code:h.weather_code[idx], pop:h.precipitation_probability[idx] ?? 0}); } return {tomorrow:useTomorrow, list:out}; })() };
   }catch(e){ WX = null; }
   renderWeather(); renderToday();
 }
@@ -599,6 +614,11 @@ function renderWeather(){
   const rule = wxRule(); let tip = rule ? rule.line(WX) : '';
   if(p25 && (p25[1]==='y'||p25[1]==='r')) tip += ' 미세먼지 안 좋으니 <b>이동 짧은 곳</b> 추천.';
   document.getElementById('wxTip').innerHTML = tip;
+  const hb = document.getElementById('wxHours');
+  if(WX.hours && WX.hours.list.length){
+    const nowH = new Date().getHours();
+    hb.innerHTML = `<div class="hl">⏰ ${WX.hours.tomorrow?'내일':'오늘'} 점심시간 예보</div>` + WX.hours.list.map(x=>{ const wc = WXC[x.code]||['','🌡️','']; const isNow = !WX.hours.tomorrow && nowH===x.hr; return `<div class="wxh ${isNow?'now':''}"><div class="t">${x.hr}시</div><div class="i">${wc[1]}</div><div class="c">${x.t}°</div><div class="p ${x.pop>=40?'rain':''}">☂ ${x.pop}%</div></div>`; }).join('');
+  } else hb.innerHTML = '';
 }
 
 /* ======================= 추천 ======================= */
