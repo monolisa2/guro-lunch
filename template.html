@@ -989,7 +989,8 @@ function pollState(p){ const now = Date.now(); if(now < p.deadline) return 'live
 function tally(pid, p){
   const vs = STORE.votes[pid] || {}; const cnt = {}; let total = 0; const voters = [];
   for(const uid in vs){ const v = vs[uid]; if(!v || !v.rid) continue; cnt[v.rid] = (cnt[v.rid]||0)+1; total++; voters.push({uid, emoji:v.emoji||'🙂', nick:v.nick||'', rid:v.rid}); }
-  const cands = Object.values(p.cands||{}).filter(Boolean);
+  const cands = Object.values(p.cands||{}).filter(id=>id && BYID[id]);
+  for(const k in cnt) if(!BYID[k]) { total -= cnt[k]; delete cnt[k]; }
   const max = Math.max(0, ...cands.map(c=>cnt[c]||0));
   const winners = max>0 ? cands.filter(c=>(cnt[c]||0)===max) : [];
   return { cnt, total, voters, cands, max, winners, mine: vs[ME.uid]?.rid || null };
