@@ -85,7 +85,16 @@ const nn = s => (s || '').replace(/\s+/g, '').replace(/[()\[\]·・.,'"&#-]/g, '
 // 오타 허용: 2글자 조각(bigram) 겉침 범위 (0~1)
 const bigrams = s => { const o = new Map(); for (let i = 0; i < s.length - 1; i++) { const g = s.slice(i, i + 2); o.set(g, (o.get(g) || 0) + 1); } return o; };
 const sim = (a, b) => { if (!a || !b) return 0; if (a.length < 2 || b.length < 2) return a === b ? 1 : 0; const A = bigrams(a), B = bigrams(b); let hit = 0; for (const [g, c] of A) hit += Math.min(c, B.get(g) || 0); return (2 * hit) / ((a.length - 1) + (b.length - 1)); };
-const nameMatch = (cand, want) => { const c = nn(cand), w = nn(want); if (!c || !w) return 0; if (c === w) return 1; if (c.includes(w) || w.includes(c)) return 0.9; return sim(c, w); };
+const isSubseq = (small, big) => { let i = 0; for (const ch of big) { if (ch === small[i]) i++; if (i === small.length) return true; } return i === small.length; };
+const nameMatch = (cand, want) => {
+  const c = nn(cand), w = nn(want); if (!c || !w) return 0;
+  if (c === w) return 1;
+  if (c.includes(w) || w.includes(c)) return 0.9;
+  const toks = String(want).split(/\s+/).map(nn).filter(t => t.length >= 2);
+  if (toks.length >= 2 && toks.every(t => c.includes(t))) return 0.85;          // "담소 순대" → 담소소사골순대육개장
+  if (w.length >= 4 && isSubseq(w, c) && w.length / c.length >= 0.4) return 0.7; // "송가제육" → 송가직화제육
+  return sim(c, w);
+};
 let reqs = {};
 try { reqs = (await (await fetch(FBURL + '/requests.json', { signal: T() })).json()) || {}; } catch (e) { }
 const pendingReqs = Object.entries(reqs).filter(([, r]) => r && r.status === 'pending');
@@ -93,8 +102,14 @@ const reqLog = [];
 for (const [qid, r] of pendingReqs) {
   let best = null, reason = '';
   const tryQ = [r.name, '구로디지털단지 ' + r.name, '구로동 ' + r.name, (r.hint ? r.hint + ' ' + r.name : null)].filter(Boolean);
+  // 0) 이미 수집된 반경 내 후보(base) 안에서 먼저 찾기 (카카오 검색이 안 돌려주는 이름도 잡힐)
+  {
+    let bb = null;
+    for (const b of base.values()) { const sc = nameMatch(b.name, r.name); if (sc >= 0.6 && (!bb || sc > bb.score || (sc === bb.score && b.dist < bb.d))) bb = { p: { confirmid: b.id, name: b.name, lat: b.lat, lon: b.lon, new_address: b.addr, tel: b.tel, cate_name_depth1: '음식점', cate_name_depth2: b.c2 }, d: b.dist, score: sc }; }
+    if (bb) best = bb;
+  }
   // 이미 확정된 카카오 ID가 있으면 그걸 바로 사용
-  if (r.rid && /^\d+$/.test(String(r.rid))) {
+  if (!best && r.rid && /^\d+$/.test(String(r.rid))) {
     const j = await ksearch(r.name, 1);
     const hit = (j.place || []).find(p => p.confirmid === String(r.rid));
     if (hit) best = { p: hit, d: hav(+hit.lat, +hit.lon), score: 1 };
