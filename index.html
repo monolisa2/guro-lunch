@@ -296,6 +296,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .visitbox .vt{flex:1;font-size:12px;color:var(--tx2);line-height:1.45}
 .visitbox .vt b{color:var(--tx);font-size:13px}
 .menul{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+.mmore{display:none}.mmore.open{display:block}
+.morebtn{display:block;width:100%;margin-top:10px;padding:11px;border-radius:12px;background:var(--soft);border:1px dashed var(--line2);color:var(--tx2);font-size:12.5px;font-weight:700}
+.morebtn:active{background:var(--soft2)}
+.jump{display:flex;gap:6px;margin-top:12px}
+.jump button{flex:1;padding:9px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line2);font-size:12.5px;font-weight:700;color:var(--tx2)}
+.jump button:active{background:var(--soft2)}
 .menul h4{font-size:12.5px;color:var(--tx3);font-weight:700;margin-bottom:8px}
 .mi{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line2)}
 .mi .l{font-size:13.5px;font-weight:600}
@@ -808,7 +814,8 @@ function render(){
 }
 
 /* ======================= 모달 ======================= */
-let CUR = null;
+let CUR = null, SHOW_ALL_C = false;
+const menuRow = m => `<div class="mi"><div class="l">${esc(m.n)}${m.d?'<em>AI추천</em>':''}${m.d?`<i>${esc(m.d)}</i>`:''}</div><div class="r">${won(m.p)}</div></div>`;
 const visitId = () => ME.uid + '_' + ymd();
 function monthVisits(rid){ const {s,e}=monthRange(0); const o = STORE.visits[rid]||{}; return Object.values(o).filter(x=>x.ts>=s&&x.ts<e).length; }
 function openModal(r){
@@ -839,8 +846,10 @@ function openModal(r){
         <div class="vt" id="vText"></div>
         <button class="btn v" id="vBtn">🍽️ 오늘 여기서 먹었어요</button>
       </div>
+      <div class="jump"><button data-j="mMenu">📋 메뉴 ${menus.length}</button><button data-j="mCmt">💬 후기 <span id="jCnt">0</span></button></div>
+      ${menus.length?`<div class="menul" id="mMenu"><h4>메뉴 ${menus.length}개</h4>${menus.slice(0,8).map(menuRow).join('')}${menus.length>8?`<div class="mmore" id="mMore">${menus.slice(8).map(menuRow).join('')}</div><button class="morebtn" id="mMoreBtn">메뉴 ${menus.length-8}개 더 보기 ▾</button>`:''}</div>`:'<div class="menul" id="mMenu"><h4>등록된 메뉴 정보가 없어요</h4></div>'}
       <div class="rxbox"><h4>한 방 평가</h4><div class="rxs" id="rxs">${REACTIONS.map(e=>`<button class="rx" data-e="${e}">${e}<span>0</span></button>`).join('')}</div></div>
-      <div class="cbox">
+      <div class="cbox" id="mCmt">
         <h4>💬 직원 후기 <span id="cCnt"></span></h4>
         <div class="me"><div class="av" id="meAv">${ME.emoji}</div><div class="nk" id="meNick">${esc(ME.nick)}</div><button onclick="openEmoji()">프로필 변경</button></div>
         <div class="cform">
@@ -849,7 +858,6 @@ function openModal(r){
         </div>
         <div class="clist" id="clist"><div class="cempty">불러오는 중…</div></div>
       </div>
-      ${menus.length?`<div class="menul"><h4>메뉴 ${menus.length}개</h4>${menus.map(m=>`<div class="mi"><div class="l">${esc(m.n)}${m.d?'<em>AI추천</em>':''}${m.d?`<i>${esc(m.d)}</i>`:''}</div><div class="r">${won(m.p)}</div></div>`).join('')}</div>`:'<div class="menul"><h4>등록된 메뉴 정보가 없어요</h4></div>'}
     </div>`;
   document.getElementById('ov').classList.add('on');
   document.body.style.overflow='hidden';
@@ -857,6 +865,10 @@ function openModal(r){
   ta.oninput = ()=>{ document.getElementById('cLen').textContent = ta.value.length; };
   document.getElementById('cSend').onclick = sendComment;
   document.getElementById('vBtn').onclick = toggleVisit;
+  SHOW_ALL_C = false;
+  const mMoreBtn = document.getElementById('mMoreBtn');
+  if(mMoreBtn) mMoreBtn.onclick = ()=>{ const x = document.getElementById('mMore'); const open = x.classList.toggle('open'); mMoreBtn.textContent = open ? '메뉴 접기 ▴' : `메뉴 ${menus.length-8}개 더 보기 ▾`; };
+  document.querySelectorAll('#md .jump button').forEach(b=>b.onclick=()=>{ const t = document.getElementById(b.dataset.j); if(t) t.scrollIntoView({behavior:'smooth', block:'start'}); });
   document.querySelectorAll('#rxs .rx').forEach(b=>b.onclick=()=>toggleReaction(b.dataset.e));
   renderVisit(); loadReactions(); loadComments();
 }
@@ -914,9 +926,17 @@ async function loadComments(){
   STORE.comments[r.id] = data;
   const arr = Object.keys(data).map(k=>({cid:k, ...data[k]})).sort((a,b)=>b.ts-a.ts);
   document.getElementById('cCnt').textContent = arr.length? `(${arr.length})` : '';
+  const jc = document.getElementById('jCnt'); if(jc) jc.textContent = arr.length;
   const el = document.getElementById('clist');
-  el.innerHTML = arr.length ? arr.map(c=>`<div class="ci"><div class="av">${c.emoji||'🙂'}</div><div class="cb"><div class="ch"><b>${esc(c.nick)}</b><span>${ago(c.ts)}</span>${c.uid===ME.uid?`<button class="del" data-cid="${c.cid}">삭제</button>`:''}</div><div class="cx">${esc(c.text)}</div></div></div>`).join('')
+  const shown = SHOW_ALL_C ? arr : arr.slice(0,3);
+  el.innerHTML = arr.length ? shown.map(c=>`<div class="ci"><div class="av">${c.emoji||'🙂'}</div><div class="cb"><div class="ch"><b>${esc(c.nick)}</b><span>${ago(c.ts)}</span>${c.uid===ME.uid?`<button class="del" data-cid="${c.cid}">삭제</button>`:''}</div><div class="cx">${esc(c.text)}</div></div></div>`).join('')
     : '<div class="cempty">아직 후기가 없어요. 첫 번째로 남겨보세요 🙌</div>';
+  if(arr.length > 3){
+    const tb = document.createElement('button'); tb.className = 'morebtn';
+    if(SHOW_ALL_C){ tb.textContent = '후기 접기 ▴'; tb.onclick = ()=>{ SHOW_ALL_C = false; loadComments(); document.getElementById('mCmt').scrollIntoView({block:'start'}); }; }
+    else { tb.textContent = `후기 ${arr.length-3}개 더 보기 ▾`; tb.onclick = ()=>{ SHOW_ALL_C = true; loadComments(); }; }
+    el.appendChild(tb);
+  }
   el.querySelectorAll('.del').forEach(b=>b.onclick=async()=>{ if(!confirm('후기를 삭제할까요?')) return; await fbDel('/comments/'+r.id+'/'+b.dataset.cid); loadComments(); loadAll(); });
 }
 async function sendComment(){
