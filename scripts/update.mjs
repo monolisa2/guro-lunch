@@ -51,7 +51,9 @@ const QUERIES = [
   '구로동 양식', '구로동 카페', '구로디지털단지 점심', '구로동 국밥', '구로동 돈까스', '구로동 김밥', '구로동 고기',
   '구로동 백반', '구로동 칼국수', '구로동 초밥', '구로동 샐러드', '구로동 햄버거', '구로동 쌀국수', '구로동 뷔페',
   '구로동 신규오픈', '구로디지털단지 새로생긴', '구로동 부대찌개', '구로동 순대국', '구로동 파스타', '구로동 덮밥',
-  '한신아이티타워 식당', '구로 지타워몰 식당', '에이스하이엔드 구로 식당', '코오롱디지털타워 식당', '구로동 회식'
+  '한신아이티타워 식당', '구로 지타워몰 식당', '에이스하이엔드 구로 식당', '코오롱디지털타워 식당', '구로동 회식',
+  // 확장(카카오 검색은 키워드당 90개까지만 주므로 넓게)
+  '구로동 제육볶음', '구로동 직화', '구로동 불고기', '구로동 정식', '구로동 가정식', '구로동 김치찌개', '구로동 된장찌개', '구로동 순두부', '구로동 비빔밥', '구로동 덮밥집', '구로동 생선구이', '구로동 고등어', '구로동 쌈밥', '구로동 보리밥', '구로동 낙지', '구로동 오징어', '구로동 닭갈비', '구로동 찜닭', '구로동 족발', '구로동 감자탕', '구로동 뼈해장국', '구로동 설렁탕', '구로동 육개장', '구로동 갈비탕', '구로동 우동', '구로동 라멘', '구로동 짬뽕', '구로동 마라탕', '구로동 양꼬치', '구로동 쌀국수집', '구로동 카레', '구로동 오므라이스', '구로동 파스타집', '구로동 리조또', '구로동 스테이크', '구로동 버거', '구로동 샌드위치', '구로동 토스트', '구로동 브런치', '구로동 떡볶이', '구로동 라볶이', '구로동 만두', '구로동 도시락', '구로동 죽', '구로동 국수집', '구로동 냉면', '구로동 막국수', '구로동 메밀', '구로동 회덮밥', '구로동 참치', '구로동 포케', '구로동 샐러드바', '구로동 뷔페식당', '구로동 한식뷔페', '구로동 구내식당', '구로동 분식집', '구로동 술집', '구로동 호프', '구로동 이자카야', '구로동 곱창', '구로동 막창', '구로동 삼겹살집', '구로동 갈비', '구로동 소고기', '구로동 한우', '구로동 양식집', '구로동 일식집', '구로동 중식당', '구로동 베이커리', '구로동 디저트', '구로동 케이크', '구로동 카페 디저트', '구로동 아메리카노', '디지털로26길 식당', '디지털로27길 식당', '디지털로31길 식당', '디지털로33길 식당', '디지털로32길 식당', '디지털로34길 식당', '구로동 맛집 점심', '남구로역 점심', '구로디지털단지역 점심', '구로디지털단지 회식', '구로디지털단지 혼밥', '구로디지털단지 가성비', '구로디지털단지 새로 오픈', '디지털로 식당', '디지털로26길 맛집', '디지털로27길 맛집', '디지털로31길 맛집', '디지털로33길 맛집', '구로동로 식당', '구로중앙로 식당', '벚꽃로 구로 식당'
 ];
 
 const CAFE = ['커피전문점', '카페', '디저트카페', '제과,베이커리', '전통찻집', '북카페', '샌드위치'];
@@ -75,7 +77,43 @@ for (const q of QUERIES) {
     await sleep(80);
   }
 }
-console.log(`[1/3] 반경 ${RADIUS}m 후보 ${base.size}곳`);
+console.log(`[1/4] 반경 ${RADIUS}m 후보 ${base.size}곳`);
+
+/* ---------- 1.5 직원 추가 요청 처리 (Firebase /requests) ---------- */
+const FBURL = 'https://guro-lunch-default-rtdb.asia-southeast1.firebasedatabase.app';
+const nn = s => (s || '').replace(/\s+/g, '').toLowerCase();
+let reqs = {};
+try { reqs = (await (await fetch(FBURL + '/requests.json', { signal: T() })).json()) || {}; } catch (e) { }
+const pendingReqs = Object.entries(reqs).filter(([, r]) => r && r.status === 'pending');
+const reqLog = [];
+for (const [qid, r] of pendingReqs) {
+  let best = null, reason = '';
+  const tryQ = [r.name, '구로디지털단지 ' + r.name, '구로동 ' + r.name, (r.hint ? r.hint + ' ' + r.name : null)].filter(Boolean);
+  for (const q of tryQ) {
+    const j = await ksearch(q, 1);
+    const cands = (j.place || []).map(p => ({ p, d: hav(+p.lat, +p.lon) }))
+      .filter(x => x.p.cate_name_depth1 === '음식점' && (nn(x.p.name).includes(nn(r.name)) || nn(r.name).includes(nn(x.p.name))));
+    const near = cands.filter(x => x.d <= RADIUS).sort((a, b) => a.d - b.d)[0];
+    if (near) { best = near; break; }
+    if (!best && cands.length) { best = cands.sort((a, b) => a.d - b.d)[0]; reason = 'far'; }
+    await sleep(80);
+  }
+  let patch;
+  if (best && best.d <= RADIUS) {
+    const pl = best.p;
+    if (!base.has(pl.confirmid)) base.set(pl.confirmid, { id: pl.confirmid, name: pl.name, lat: +pl.lat, lon: +pl.lon, dist: best.d, addr: pl.new_address || pl.address, tel: pl.tel, c2: pl.cate_name_depth2, req: 1 });
+    patch = { status: 'added', rid: pl.confirmid, matched: pl.name, dist: best.d, doneAt: Date.now() };
+    reqLog.push(`✅ ${r.name} → ${pl.name} (${best.d}m)`);
+  } else if (best) {
+    patch = { status: 'far', matched: best.p.name, dist: best.d, doneAt: Date.now() };
+    reqLog.push(`📏 ${r.name} → ${best.p.name} ${best.d}m (반경 밖)`);
+  } else {
+    patch = { status: 'notfound', doneAt: Date.now() };
+    reqLog.push(`❓ ${r.name} 못 찾음`);
+  }
+  try { await fetch(FBURL + '/requests/' + qid + '.json', { method: 'PATCH', body: JSON.stringify(patch), signal: T() }); } catch (e) { }
+}
+console.log(`[1.5/4] 추가 요청 ${pendingReqs.length}건 처리${reqLog.length ? '\n  ' + reqLog.join('\n  ') : ''}`);
 if (base.size < 50) { console.error('수집 결과가 비정상적으로 적음. 중단(기존 데이터 유지).'); process.exit(1); }
 
 /* ---------- 2. 상세(메뉴/가격/평점) ---------- */
@@ -237,7 +275,7 @@ for (const [id, b] of base) {
   const lunch = menus.filter(m => m.p >= 4000 && m.p <= 20000).map(m => m.p).sort((x, y) => x - y);
   const med = lunch.length ? lunch[Math.floor(lunch.length / 2)] : null;
   if (!seen[id]) {
-    seen[id] = { f: firstRun ? null : TODAY, l: TODAY };
+    seen[id] = { f: firstRun ? null : TODAY, l: TODAY, ...(b.req ? { req: 1 } : {}) };
     if (!firstRun) added.push(`${name}(${cat}, ${b.dist}m${med ? ', ' + med.toLocaleString('ko-KR') + '원' : ''})`);
   }
   seen[id].l = TODAY;
@@ -265,8 +303,9 @@ const inList = new Set(list.map(r => r.id));
 let kept = 0;
 for (const [id, r] of prevById) {
   if (inList.has(id)) continue;
+  if (seen[id]?.req) seen[id].l = TODAY;
   const sn = seen[id];
-  if (sn && sn.l && daysBetween(sn.l, TODAY) <= 7) {
+  if (sn && sn.l && (daysBetween(sn.l, TODAY) <= 7 || sn.req)) {
     const fsd = sn.f;
     list.push({ ...r, nw: fsd && daysBetween(fsd, TODAY) <= NEW_DAYS ? 1 : 0 });
     kept++;
@@ -286,6 +325,6 @@ const tpl = await fs.readFile(path.join(ROOT, 'template.html'), 'utf8');
 await fs.writeFile(path.join(ROOT, 'index.html'), tpl.replace('<script src="data.js"></script>', '<script>' + dataJs + '</script>'), 'utf8');
 
 const closed = [...prevIds].filter(id => !list.some(r => r.id === id)).length;
-const summary = `[4/4] 총 ${list.length}곳 / 오늘 신규 ${added.length} / 검색에서 빠졌지만 유지 ${kept} / 제외 ${closed} / 네이버 매칭 ${payload.meta.naverMatched}\n신규: ${added.length ? added.join(' · ') : '없음'}`;
+const summary = `[4/4] 총 ${list.length}곳 / 오늘 신규 ${added.length} / 검색에서 빠졌지만 유지 ${kept} / 제외 ${closed} / 네이버 매칭 ${payload.meta.naverMatched}\n신규: ${added.length ? added.join(' · ') : '없음'}${reqLog.length ? '\n요청: ' + reqLog.join(' / ') : ''}`;
 console.log(summary);
 await fs.writeFile(path.join(ROOT, 'last-run.txt'), `${new Date().toISOString()}\n${summary}\n`, 'utf8');
