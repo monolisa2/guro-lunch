@@ -277,7 +277,9 @@ html.dark .noimg.ph .lb{color:rgba(255,255,255,.55)}
 .rank-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .rank-h h2{font-size:17px;font-weight:800;letter-spacing:-.4px}
 .rank-h h2 small{font-size:12px;color:var(--tx3);font-weight:600;margin-left:4px}
-.seg{display:flex;background:var(--card2);border-radius:11px;padding:3px}
+.seg{display:flex;background:var(--card2);border-radius:11px;padding:3px;overflow-x:auto;scrollbar-width:none;max-width:100%}
+.seg::-webkit-scrollbar{display:none}
+.seg button{white-space:nowrap;flex:none}
 .seg button{padding:7px 12px;border-radius:9px;font-size:12px;font-weight:700;color:var(--tx3)}
 .seg button.on{background:var(--card);color:var(--tx);box-shadow:var(--shadow)}
 .rank-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:13px}
@@ -574,7 +576,7 @@ footer{margin-top:36px;padding:20px 0;border-top:1px solid var(--line);color:var
   <section class="rank" id="rank">
     <div class="rank-h">
       <h2>🏆 랭킹 <small id="rkMonth"></small></h2>
-      <div class="seg" id="rkSeg"><button data-p="m0" class="on">이번 달</button><button data-p="m1">지난 달</button><button data-p="q">3개월</button><button data-p="y">올해</button><button data-p="all">전체</button></div>
+      <div class="seg" id="rkSeg"><button data-p="d0">오늘</button><button data-p="m0" class="on">이번 달</button><button data-p="m1">지난 달</button><button data-p="q">3개월</button><button data-p="y">올해</button><button data-p="all">전체</button></div>
     </div>
     <div class="rank-grid">
       <div class="rbox main"><h3>🍽️ 맛집 TOP 10 <span>우리 회사 사람들이 고른</span></h3><ol class="rlist scroll" id="rkShop"></ol></div>
@@ -902,6 +904,7 @@ let RK_PERIOD = 'm0';
 function periodRange(p){
   const n = new Date(); const y = n.getFullYear(), mo = n.getMonth();
   const mon = (yy,mm)=>new Date(yy,mm,1).getTime();
+  if(p==='d0'){ const s=new Date(y,mo,n.getDate()).getTime(); return { s, e:s+86400e3, label:`${mo+1}월 ${n.getDate()}일`, kind:'d0' }; }
   if(p==='m0') return { s:mon(y,mo), e:mon(y,mo+1), label:`${y}년 ${mo+1}월`, kind:'m0' };
   if(p==='m1') return { s:mon(y,mo-1), e:mon(y,mo), label:`${new Date(y,mo-1,1).getFullYear()}년 ${((mo+11)%12)+1}월`, kind:'m1' };
   if(p==='q')  return { s:mon(y,mo-2), e:Date.now()+1, label:`최근 3개월`, kind:'q' };
@@ -944,7 +947,7 @@ function renderRanking(){
     shopEl.innerHTML = R.shops.map((x,i)=>{ const r=BYID[x.id]; return li(i, rimg(r), esc(r.n), `${r.c} · ${r.d<=30?'건물 안':r.d+'m'} · ${parts(x)}`, x.score+'점', r.id); }).join('');
     shopEl.classList.toggle('short', R.shops.length<=5);
   } else {
-    shopEl.innerHTML = `<div class="rempty">${pr.kind==='m0'?'이번 달 기록이 아직 없어요. 먼저 먹고 "오늘 여기서 먹었어요" 누르면 1등! 🥇':'이 기간 기록이 없어요.'}</div>`;
+    shopEl.innerHTML = `<div class="rempty">${pr.kind==='d0'?'오늘 기록이 아직 없어요. 점심 먹고 "오늘 여기서 먹었어요" 누르면 오늘의 1등! 🥇':pr.kind==='m0'?'이번 달 기록이 아직 없어요. 먼저 먹고 "오늘 여기서 먹었어요" 누르면 1등! 🥇':'이 기간 기록이 없어요.'}</div>`;
     shopEl.classList.add('short');
   }
   // 2) 이번 주 핫플 (최근 7일, 기간 선택과 무관)
@@ -961,7 +964,7 @@ function renderRanking(){
   const ymd0 = d0.toISOString().slice(0,10), ymd1 = new Date(d1.getTime()+9*3600e3).toISOString().slice(0,10);
   const nw = L.filter(r=>r.fs && r.fs>=ymd0 && r.fs<=ymd1).sort((a,b)=>b.fs.localeCompare(a.fs)).slice(0,5);
   document.getElementById('rkNew').innerHTML = nw.length ? nw.map(r=>`<li class="rli click" data-id="${r.id}"><span class="rk">🆕</span><span class="ri">${rimg(r)}</span><div class="rt"><b>${esc(r.n)}</b><small>${r.c} · ${r.d}m · ${r.fs.slice(5).replace('-','/')} 발견</small></div></li>`).join('')
-    : `<div class="rempty">${pr.kind==='m0'?'이번 달 새로 발견된 곳은 아직 없어요. 매일 아침 자동으로 확인 중 👀':'이 기간에 새로 발견된 곳이 없어요.'}</div>`;
+    : `<div class="rempty">${pr.kind==='d0'?'오늘 새로 발견된 곳은 없어요. 매일 아침 9:20에 확인해요 👀':pr.kind==='m0'?'이번 달 새로 발견된 곳은 아직 없어요. 매일 아침 자동으로 확인 중 👀':'이 기간에 새로 발견된 곳이 없어요.'}</div>`;
   document.querySelectorAll('#rank .rli.click').forEach(el=>el.onclick=()=>openModal(BYID[el.dataset.id]));
 }
 document.getElementById('rkSeg').onclick = e=>{ const b=e.target.closest('button'); if(!b) return; RK_PERIOD=b.dataset.p; document.querySelectorAll('#rkSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderRanking(); };
