@@ -138,8 +138,20 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .reroll:active{transform:scale(.96)}
 .reroll.rolling{pointer-events:none;opacity:.75}
 .pickimg{position:relative}
-.pickimg.rolling img,.pickimg.rolling .noimg{filter:blur(2px) saturate(1.25);transform:scale(1.07);transition:none}
-.pickimg.rolling:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(255,255,255,0) 0 6px,rgba(255,255,255,.12) 6px 8px);animation:slotScan .25s linear infinite;pointer-events:none}
+.pickimg.rolling img,.pickimg.rolling .noimg{filter:blur(6px) saturate(1.1) brightness(.85);transform:scale(1.08);transition:filter .25s}
+.reel{position:absolute;inset:0;display:flex;justify-content:center;overflow:hidden;z-index:2;background:radial-gradient(circle at 50% 50%,rgba(0,0,0,.05),rgba(0,0,0,.35))}
+.reel .col{display:flex;flex-direction:column;align-items:center;gap:18px;font-size:58px;line-height:1;padding-top:10px;animation:reelSpin .38s linear infinite;will-change:transform;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+.reel.slow .col{animation-duration:.85s}
+.reel:before,.reel:after{content:"";position:absolute;left:0;right:0;height:34%;z-index:3;pointer-events:none}
+.reel:before{top:0;background:linear-gradient(rgba(0,0,0,.45),transparent)}
+.reel:after{bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.45))}
+.reel .win{position:absolute;left:8%;right:8%;top:50%;height:74px;transform:translateY(-50%);border:2px solid rgba(255,255,255,.75);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.18) inset;z-index:4;pointer-events:none}
+.reel.out{animation:reelOut .2s ease-in forwards}
+@keyframes reelSpin{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+@keyframes reelOut{to{opacity:0;transform:scale(1.15)}}
+@keyframes flipIn{0%{transform:perspective(600px) rotateY(80deg) scale(.92);opacity:0}100%{transform:perspective(600px) rotateY(0) scale(1);opacity:1}}
+.pickimg .flipin{animation:flipIn .55s cubic-bezier(.2,.8,.2,1.15)}
+
 @keyframes slotScan{0%{background-position:0 0}100%{background-position:0 16px}}
 .pickname.rolling{color:var(--tx2)}
 @keyframes slotIn{0%{transform:translateY(-14px);opacity:.35}100%{transform:translateY(0);opacity:1}}
@@ -280,6 +292,7 @@ select{flex:1;background:var(--bg2);border:1px solid var(--line2);border-radius:
 .chips::-webkit-scrollbar{display:none}
 .chip{padding:9px 13px;border-radius:11px;background:var(--bg2);border:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--tx2);white-space:nowrap;flex:none}
 .chip.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--on-ac);border-color:transparent}
+.chip.hs.on{background:linear-gradient(135deg,#f5a524,#ffcc4d);color:#2b1700;border-color:transparent}
 .chip.on.alt2{background:linear-gradient(135deg,#f5a524,#ffcc4d);color:#2b1700}
 .sliders{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line2)}
 .sl{flex:1;min-width:calc(50% - 8px)}
@@ -303,6 +316,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .b.top{background:rgba(255,176,58,.95);color:#2b1700}
 .b.rank{background:rgba(242,181,0,.96);color:#2b1f00}
 .b.walk{background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.b.hs{background:rgba(255,196,60,.95);color:#3a2600}
 .nvbtn{position:absolute;top:6px;right:6px;width:34px;height:34px;border-radius:10px;background:rgba(3,199,90,.95);display:grid;place-items:center;font-size:15px;z-index:3;box-shadow:0 4px 12px rgba(0,0,0,.25)}
 .nvbtn:active{transform:scale(.9)}
 .c .bd{padding:10px 11px 11px;display:flex;flex-direction:column;gap:5px;flex:1}
@@ -885,14 +899,15 @@ function renderRanking(){
 document.getElementById('rkSeg').onclick = e=>{ const b=e.target.closest('button'); if(!b) return; RK_PERIOD=b.dataset.p; document.querySelectorAll('#rkSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderRanking(); };
 
 /* ======================= 리스트 ======================= */
-const KINDS = ['전체','밥집','카페','패스트푸드','구내식당','술집'];
+const KINDS = ['전체','밥집','회식','카페','패스트푸드','구내식당'];
 let state = {kind:'전체', q:'', sort:'dist', cat:'', dist:520, price:25000, fresh:false, limit:30};
 document.getElementById('cat').innerHTML = '<option value="">전체 카테고리</option>' + [...new Set(L.map(r=>r.c))].sort((a,b)=>a.localeCompare(b,'ko')).map(c=>`<option value="${c}">${emo(c)} ${c}</option>`).join('');
 const newCnt = L.filter(r=>r.nw).length;
-document.getElementById('kinds').innerHTML = KINDS.map(k=>`<button class="chip${k==='전체'?' on':''}" data-k="${k}">${k}</button>`).join('') + (newCnt?`<button class="chip alt2" id="chipNew">🆕 신규 ${newCnt}</button>`:'');
+document.getElementById('kinds').innerHTML = KINDS.map(k=>`<button class="chip${k==='전체'?' on':''}${k==='회식'?' hs':''}" data-k="${k}">${k==='회식'?'🍻 회식':k}</button>`).join('') + (newCnt?`<button class="chip alt2" id="chipNew">🆕 신규 ${newCnt}</button>`:'');
 function filtered(){
   let a = L.filter(r=>{
-    if(state.kind!=='전체' && r.k!==state.kind) return false;
+    if(state.kind==='회식'){ if(!(r.k==='회식' || r.hs)) return false; }
+    else if(state.kind!=='전체' && r.k!==state.kind) return false;
     if(state.cat && r.c!==state.cat) return false;
     if(r.d > state.dist) return false;
     if(state.price<25000 && (!r.pr || r.pr>state.price)) return false;
@@ -916,7 +931,7 @@ function card(r){
   const rt = rating(r), cc = CMTCNT[r.id]||0;
   return `<div class="c" data-id="${r.id}">
     <div class="im">${imgTag(r,34)}
-      <div class="badges"><span class="b walk">${r.d}m</span>${RK[r.id]&&RK[r.id]<=3?`<span class="b rank">🏆${RK[r.id]}</span>`:''}${r.nw?'<span class="b top">🆕</span>':''}</div>
+      <div class="badges"><span class="b walk">${r.d}m</span>${RK[r.id]&&RK[r.id]<=3?`<span class="b rank">🏆${RK[r.id]}</span>`:''}${r.nw?'<span class="b top">🆕</span>':''}${(r.hs||r.k==='회식')?'<span class="b hs">🍻</span>':''}</div>
       <a class="nvbtn" href="${naverUrl(r)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="네이버지도">🟢</a>
     </div>
     <div class="bd">
@@ -962,6 +977,7 @@ function openModal(r){
         ${rt?`<span class="tag ${rt.src==='naver'?'nv':'hot'}">★ ${rt.v} ${rt.src==='naver'?'네이버':'카카오'}</span>`:''}
         ${RK[r.id]?`<span class="tag hot">🏆 이달 ${RK[r.id]}위</span>`:''}
         ${r.nw?`<span class="tag hot">🆕 신규</span>`:''}
+        ${(r.hs||r.k==='회식')?`<span class="tag hot">🍻 회식 가능</span>`:''}
       </div>
       <div class="info">
         <div><b>주소</b><span>${esc(r.a||'–')}</span></div>
@@ -1203,29 +1219,36 @@ async function rerollFun(){
   const btn = document.getElementById('btnReroll'); btn.classList.add('rolling'); btn.textContent = '🥁 두구두구…';
   const imgEl = document.getElementById('pkImg'), nameEl = document.getElementById('pkName'), menuEl = document.getElementById('pkMenu'), metaEl = document.getElementById('pkMeta'), descEl = document.getElementById('pkDesc');
   document.querySelectorAll('.winlbl').forEach(e=>e.remove());
+  // 1) 결과 먼저 확정 + 사진 미리 로드 (연출 도는 동안 받아둠)
   seedOffset++;
-  const pool = L.filter(r=>(r.k==='밥집'||r.k==='구내식당') && r.ph);
-  // 이미지를 미리 받아놓고, 로드된 것만 돌린다 (미리 받기 동안 사진을 흔들어서 준뱄 중임을 보여줌)
-  imgEl.classList.add('rolling'); nameEl.classList.add('rolling');
+  const next = pickToday();
+  if(next.main?.ph){ const pre = new Image(); pre.src = next.main.ph; }
+  // 2) 사진은 그대로 두고 위에 이모지 릴 오버레이 (사진 교체 없음 → 끊김 없음)
+  const EM = ['🍚','🍜','🍣','🍕','🍔','🥗','🍲','🥩','🍛','🥟','🍝','🍱','🍗','🌮','🍤','🥘'];
+  const reel = document.createElement('div'); reel.className = 'reel';
+  reel.innerHTML = '<div class="col">' + [...EM, ...EM].map(e=>'<span>'+e+'</span>').join('') + '</div><div class="win"></div>';
+  imgEl.classList.add('rolling'); imgEl.appendChild(reel);
+  nameEl.classList.add('rolling');
   menuEl.innerHTML = '🥁 두구두구두구…'; descEl.textContent = ''; metaEl.innerHTML = '<span class="tag">오늘의 운명을 고르는 중</span>';
-  const cand = Array.from({length:22}, ()=>pool[Math.floor(Math.random()*pool.length)]);
-  const loaded = await Promise.race([
-    Promise.all(cand.map(r=>new Promise(res=>{ const im=new Image(); im.onload=()=>res(r); im.onerror=()=>res(null); im.src=r.ph; }))),
-    new Promise(res=>setTimeout(()=>res(cand.map(()=>null)), 1000))
-  ]);
-  let seq = loaded.filter(Boolean).slice(0,14);
-  if(seq.length < 8) seq = cand.slice(0,14);
-  let delay = 50;
-  for(const r of seq){
-    imgEl.innerHTML = `<img src="${r.ph}" alt="">`; nameEl.textContent = r.n;
+  // 3) 이름 티커: 사진 없이 이름만 빠르게 → 점점 느리게
+  const pool = L.filter(r=>r.k==='밥집'||r.k==='구내식당');
+  const ticks = 13; let delay = 60;
+  for(let i=0;i<ticks;i++){
+    const r = pool[Math.floor(Math.random()*pool.length)];
+    nameEl.textContent = r.n;
     nameEl.classList.remove('tick'); void nameEl.offsetWidth; nameEl.classList.add('tick');
+    if(i===Math.floor(ticks*0.6)) reel.classList.add('slow');
     await new Promise(res=>setTimeout(res, delay));
-    delay = Math.round(delay*1.15);
+    delay = Math.round(delay*1.17);
   }
+  // 4) 릴 걷어내고 결과 공개 (사진 플립 인)
+  reel.classList.add('out');
+  await new Promise(res=>setTimeout(res, 180));
   imgEl.classList.remove('rolling'); nameEl.classList.remove('rolling','tick');
   renderToday();
+  const im = imgEl.querySelector('img, .noimg'); if(im) im.classList.add('flipin');
   const hero = document.querySelector('.hero');
-  [imgEl, nameEl].forEach(el=>{ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); });
+  nameEl.classList.remove('pop'); void nameEl.offsetWidth; nameEl.classList.add('pop');
   hero.classList.add('shake'); setTimeout(()=>hero.classList.remove('shake'), 480);
   const lbl = document.createElement('div'); lbl.className='winlbl'; lbl.textContent='🎉 당첨!'; imgEl.appendChild(lbl); setTimeout(()=>lbl.remove(), 2600);
   confetti();
