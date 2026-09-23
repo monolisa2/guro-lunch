@@ -211,6 +211,15 @@ try {
   oj.list.forEach(r => { prevIds.add(r.id); prevById.set(r.id, r); });
 } catch (e) { /* 최초 실행 */ }
 
+// seen.json: { id: { f: 처음 발견일(기준선이면 null), l: 마지막 발견일 } }  -- 절대 지우지 않음
+const TODAY = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); // KST
+const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400e3);
+let seen = {};
+try { seen = JSON.parse(await fs.readFile(path.join(ROOT, 'seen.json'), 'utf8')); } catch (e) { }
+const firstRun = Object.keys(seen).length === 0;
+if (firstRun) prevIds.forEach(id => { seen[id] = { f: null, l: TODAY }; });
+const NEW_DAYS = 14;
+
 const list = [], added = [];
 for (const [id, b] of base) {
   const d = details[id];
@@ -227,8 +236,13 @@ for (const [id, b] of base) {
   const menus = (d.menus || []).filter(m => m.p > 0);
   const lunch = menus.filter(m => m.p >= 4000 && m.p <= 20000).map(m => m.p).sort((x, y) => x - y);
   const med = lunch.length ? lunch[Math.floor(lunch.length / 2)] : null;
-  const isNew = prevIds.size > 0 && !prevIds.has(id);
-  if (isNew) added.push(`${name}(${cat}, ${b.dist}m${med ? ', ' + med.toLocaleString('ko-KR') + '원' : ''})`);
+  if (!seen[id]) {
+    seen[id] = { f: firstRun ? null : TODAY, l: TODAY };
+    if (!firstRun) added.push(`${name}(${cat}, ${b.dist}m${med ? ', ' + med.toLocaleString('ko-KR') + '원' : ''})`);
+  }
+  seen[id].l = TODAY;
+  const fsd = seen[id].f;
+  const isNew = !!fsd && daysBetween(fsd, TODAY) <= NEW_DAYS;
 
   list.push({
     id, n: name, c: cat, k: kind, d: b.dist,
@@ -238,6 +252,7 @@ for (const [id, b] of base) {
     pr: med, pmin: lunch[0] || null, pmax: lunch[lunch.length - 1] || null,
     m: menus.slice().sort((x, y) => y.ai - x.ai).slice(0, 14).map(m => ({ n: m.n, p: m.p, d: (m.d || '').slice(0, 60) })),
     nw: isNew ? 1 : 0,
+    ...(fsd ? { fs: fsd } : {}),
     // 네이버: 이번에 못 가져오면 직전 값 유지
     nid: naver[id]?.nid || prevById.get(id)?.nid || null,
     nvr: naver[id]?.nvr || prevById.get(id)?.nvr || 0,
@@ -245,6 +260,19 @@ for (const [id, b] of base) {
     nsc: naver[id]?.nsc || prevById.get(id)?.nsc || null
   });
 }
+// 이번에 검색에서 빠진 곳: 최근 7일 안에 본 적 있으면 직전 정보로 유지 (검색 흔들림 보정)
+const inList = new Set(list.map(r => r.id));
+let kept = 0;
+for (const [id, r] of prevById) {
+  if (inList.has(id)) continue;
+  const sn = seen[id];
+  if (sn && sn.l && daysBetween(sn.l, TODAY) <= 7) {
+    const fsd = sn.f;
+    list.push({ ...r, nw: fsd && daysBetween(fsd, TODAY) <= NEW_DAYS ? 1 : 0 });
+    kept++;
+  }
+}
+await fs.writeFile(path.join(ROOT, 'seen.json'), JSON.stringify(seen), 'utf8');
 list.sort((a, b) => a.d - b.d);
 
 const payload = {
@@ -257,7 +285,7 @@ await fs.writeFile(path.join(ROOT, 'data.js'), dataJs, 'utf8');
 const tpl = await fs.readFile(path.join(ROOT, 'template.html'), 'utf8');
 await fs.writeFile(path.join(ROOT, 'index.html'), tpl.replace('<script src="data.js"></script>', '<script>' + dataJs + '</script>'), 'utf8');
 
-const closed = [...prevIds].filter(id => !base.has(id)).length;
-const summary = `[4/4] 총 ${list.length}곳 / 신규 ${added.length} / 제외 ${closed} / 네이버 매칭 ${payload.meta.naverMatched}\n신규: ${added.length ? added.join(' · ') : '없음'}`;
+const closed = [...prevIds].filter(id => !list.some(r => r.id === id)).length;
+const summary = `[4/4] 총 ${list.length}곳 / 오늘 신규 ${added.length} / 검색에서 빠졌지만 유지 ${kept} / 제외 ${closed} / 네이버 매칭 ${payload.meta.naverMatched}\n신규: ${added.length ? added.join(' · ') : '없음'}`;
 console.log(summary);
 await fs.writeFile(path.join(ROOT, 'last-run.txt'), `${new Date().toISOString()}\n${summary}\n`, 'utf8');
