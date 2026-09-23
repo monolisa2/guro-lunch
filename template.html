@@ -160,7 +160,7 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .tag.hot{background:var(--t-hot-bg);border-color:var(--t-hot-bd);color:var(--t-hot-tx)}
 .tag.near{background:var(--t-near-bg);border-color:var(--t-near-bd);color:var(--t-near-tx)}
 .tag.nv{background:var(--t-nv-bg);border-color:var(--t-nv-bd);color:var(--t-nv-tx)}
-.tag.wx{background:var(--t-wx-bg);border-color:var(--t-wx-bd);color:var(--t-wx-tx)}
+.tag.wxm{background:var(--t-wx-bg);border-color:var(--t-wx-bd);color:var(--t-wx-tx)}
 .pickmenu{margin-top:13px;background:var(--inset);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .pickmenu .lbl{font-size:11px;color:var(--tx3);font-weight:700;letter-spacing:.3px}
 .pickmenu .mn{font-size:17px;font-weight:700;margin-top:3px;display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
@@ -675,7 +675,7 @@ function renderToday(){
   if(rt) meta.push(`<span class="tag ${rt.src==='naver'?'nv':'hot'}">★ ${rt.v} ${rt.src==='naver'?'네이버':'카카오'}</span>`);
   if(r.pr) meta.push(`<span class="tag">💸 ${won(r.pr)}</span>`);
   if(RK[r.id]) meta.push(`<span class="tag hot">🏆 이달 ${RK[r.id]}위</span>`);
-  if(TODAY.wcats.includes(r.c)) meta.unshift(`<span class="tag wx">${WX?WX.icon:''} 오늘 날씨 맞춤</span>`);
+  if(TODAY.wcats.includes(r.c)) meta.unshift(`<span class="tag wxm">${WX?WX.icon:''} 오늘 날씨 맞춤</span>`);
   document.getElementById('pkMeta').innerHTML = meta.join('');
   const cands = (r.m||[]).filter(m=>m.p>=4000&&m.p<=20000);
   const mm = cands.length ? cands[Math.floor(TODAY.rnd()*cands.length)] : ((r.m||[])[0]||{n:'–',p:0,d:''});
