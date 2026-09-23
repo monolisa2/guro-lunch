@@ -1073,10 +1073,10 @@ function renderHof(){
   for(const rid in STORE.comments) for(const k in STORE.comments[rid]) minTs = Math.min(minTs, STORE.comments[rid][k].ts||Infinity);
   const now = new Date(); const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   const months = [];
-  if(minTs!==Infinity){ let d = new Date(new Date(minTs).getFullYear(), new Date(minTs).getMonth(), 1); while(d.getTime() < thisMonth){ const s=d.getTime(), e=new Date(d.getFullYear(), d.getMonth()+1, 1).getTime(); const top = statsIn(s,e).slice(0,3); if(top.length) months.push({ label: `${d.getFullYear()}년 ${d.getMonth()+1}월`, top, total: statsIn(s,e).length }); d = new Date(d.getFullYear(), d.getMonth()+1, 1); } }
+  if(minTs!==Infinity){ let d = new Date(new Date(minTs).getFullYear(), new Date(minTs).getMonth(), 1); while(d.getTime() < thisMonth){ const s=d.getTime(), e=new Date(d.getFullYear(), d.getMonth()+1, 1).getTime(); const top = statsIn(s,e).slice(0,5); if(top.length) months.push({ label: `${d.getFullYear()}년 ${d.getMonth()+1}월`, top, total: statsIn(s,e).length }); d = new Date(d.getFullYear(), d.getMonth()+1, 1); } }
   months.reverse();
   document.getElementById('hofCnt').textContent = months.length ? `(${months.length}개월)` : '';
-  if(!months.length){ const nxt = new Date(now.getFullYear(), now.getMonth()+1, 1); el.innerHTML = `<div class="rempty">매달 1일에 지난달 1~3위를 여기 박제해요. 첫 발표는 <b>${nxt.getMonth()+1}월 1일</b>! 이번 달 기록이 그대로 역사가 돼요 🏛️</div>`; return; }
+  if(!months.length){ const nxt = new Date(now.getFullYear(), now.getMonth()+1, 1); el.innerHTML = `<div class="rempty">매달 1일에 지난달 1~5위를 여기 박제해요. 첫 발표는 <b>${nxt.getMonth()+1}월 1일</b>! 이번 달 기록이 그대로 역사가 돼요 🏛️</div>`; return; }
   el.innerHTML = '<div class="hof">' + months.map(m=>`<div class="hofm"><h4>${m.label}<span>${m.total}곳 기록</span></h4>${m.top.map((x,i)=>{ const r=BYID[x.id]; return `<div class="hofr ${i===0?'gold':''}" data-id="${x.id}"><span class="m">${medal(i)}</span><span class="ri">${rimg(r)}</span><b>${esc(r.n)}</b><small>${x.score}점</small></div>`; }).join('')}</div>`).join('') + '</div>';
   el.querySelectorAll('.hofr').forEach(e=>e.onclick=()=>openModal(BYID[e.dataset.id]));
 }
