@@ -2,8 +2,8 @@ name: 점심지도 데이터 갱신
 
 on:
   schedule:
-    # 평일 09:20 KST (= 00:20 UTC)
-    - cron: '20 0 * * 1-5'
+    # 매일 09:20 KST (= 00:20 UTC), 주말 포함
+    - cron: '20 0 * * *'
   workflow_dispatch:
 
 permissions:
