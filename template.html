@@ -112,6 +112,19 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 @keyframes pl{0%{box-shadow:0 0 0 0 rgba(127,191,49,.55)}70%{box-shadow:0 0 0 9px rgba(127,191,49,0)}100%{box-shadow:0 0 0 0 rgba(127,191,49,0)}}
 .reroll{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line2);padding:9px 13px;border-radius:11px;font-size:12.5px;font-weight:700;min-height:38px}
 .reroll:active{transform:scale(.96)}
+.reroll.rolling{pointer-events:none;opacity:.75}
+.pickimg{position:relative}
+.pickimg.rolling img,.pickimg.rolling .noimg{filter:blur(2px) saturate(1.25);transform:scale(1.07);transition:none}
+.pickimg.rolling:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(255,255,255,0) 0 6px,rgba(255,255,255,.12) 6px 8px);animation:slotScan .25s linear infinite;pointer-events:none}
+@keyframes slotScan{0%{background-position:0 0}100%{background-position:0 16px}}
+.pickname.rolling{color:var(--tx2)}
+@keyframes slotIn{0%{transform:translateY(-16px);opacity:0}100%{transform:translateY(0);opacity:1}}
+.pickname.tick{animation:slotIn .1s ease-out}
+@keyframes pop{0%{transform:scale(.9)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
+.pop{animation:pop .5s cubic-bezier(.2,.9,.3,1.25)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px) rotate(-.3deg)}40%{transform:translateX(5px) rotate(.3deg)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+.hero.shake{animation:shake .45s}
+.winlbl{position:absolute;top:10px;left:10px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--on-ac);font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;box-shadow:0 6px 16px rgba(0,0,0,.2);animation:pop .5s cubic-bezier(.2,.9,.3,1.25);z-index:2}
 .pickmain{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
 @media(min-width:680px){.pickmain{grid-template-columns:210px 1fr;gap:20px}}
 .pickimg{aspect-ratio:16/10;border-radius:16px;overflow:hidden;background:var(--card2)}
@@ -987,7 +1000,54 @@ document.getElementById('kinds').onclick = e=>{
   else { state.kind=b.dataset.k; document.querySelectorAll('.chip[data-k]').forEach(x=>x.classList.toggle('on',x===b)); }
   state.limit=30; render();
 };
-document.getElementById('btnReroll').onclick = ()=>{ seedOffset++; renderToday(); };
+/* ---- 다시 뽑기: 슬롯밸신 연출 ---- */
+let ROLLING = false;
+function confetti(){
+  const c = document.createElement('canvas'); c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:400'; document.body.appendChild(c);
+  const ctx = c.getContext('2d'); c.width = innerWidth; c.height = innerHeight;
+  const b = document.getElementById('pkImg').getBoundingClientRect(); const ox = b.left + b.width/2, oy = b.top + b.height/2;
+  const cols = ['#7FBF31','#A6D93F','#f2b500','#ffffff','#4f8f16','#ffcc4d','#ff6a2b'];
+  const P = Array.from({length:110}, ()=>({ x:ox, y:oy, vx:(Math.random()-.5)*16, vy:-Math.random()*13-5, g:.38, r:Math.random()*7+3, c:cols[Math.random()*cols.length|0], a:Math.random()*Math.PI, va:(Math.random()-.5)*.35, life:1, shape:Math.random()<.3?'c':'r' }));
+  const t0 = performance.now();
+  (function frame(t){
+    ctx.clearRect(0,0,c.width,c.height); let alive = 0;
+    for(const p of P){ p.vy += p.g; p.x += p.vx; p.y += p.vy; p.vx *= .985; p.a += p.va; p.life -= .011; if(p.life<=0) continue; alive++;
+      ctx.save(); ctx.globalAlpha = Math.max(0,p.life); ctx.translate(p.x,p.y); ctx.rotate(p.a); ctx.fillStyle = p.c;
+      if(p.shape==='c'){ ctx.beginPath(); ctx.arc(0,0,p.r/2,0,Math.PI*2); ctx.fill(); } else ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*.6);
+      ctx.restore(); }
+    if(alive && t - t0 < 2600) requestAnimationFrame(frame); else c.remove();
+  })(t0);
+}
+async function rerollFun(){
+  if(ROLLING) return; ROLLING = true;
+  const btn = document.getElementById('btnReroll'); btn.classList.add('rolling'); btn.textContent = '🥁 두구두구…';
+  const imgEl = document.getElementById('pkImg'), nameEl = document.getElementById('pkName'), menuEl = document.getElementById('pkMenu'), metaEl = document.getElementById('pkMeta'), descEl = document.getElementById('pkDesc');
+  document.querySelectorAll('.winlbl').forEach(e=>e.remove());
+  seedOffset++;
+  const pool = L.filter(r=>(r.k==='밥집'||r.k==='구내식당') && r.ph);
+  const seq = Array.from({length:20}, ()=>pool[Math.floor(Math.random()*pool.length)]);
+  await Promise.race([ Promise.all(seq.map(r=>new Promise(res=>{ const im=new Image(); im.onload=im.onerror=res; im.src=r.ph; }))), new Promise(res=>setTimeout(res,500)) ]);
+  imgEl.classList.add('rolling'); nameEl.classList.add('rolling');
+  menuEl.innerHTML = '🥁 두구두구두구…'; descEl.textContent = ''; metaEl.innerHTML = '<span class="tag">오늘의 운명을 고르는 중</span>';
+  let delay = 55;
+  for(const r of seq){
+    imgEl.innerHTML = imgTag(r,44); nameEl.textContent = r.n;
+    nameEl.classList.remove('tick'); void nameEl.offsetWidth; nameEl.classList.add('tick');
+    await new Promise(res=>setTimeout(res, delay));
+    delay = Math.round(delay*1.14);
+  }
+  imgEl.classList.remove('rolling'); nameEl.classList.remove('rolling','tick');
+  renderToday();
+  const hero = document.querySelector('.hero');
+  [imgEl, nameEl].forEach(el=>{ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); });
+  hero.classList.add('shake'); setTimeout(()=>hero.classList.remove('shake'), 480);
+  const lbl = document.createElement('div'); lbl.className='winlbl'; lbl.textContent='🎉 당첨!'; imgEl.appendChild(lbl); setTimeout(()=>lbl.remove(), 2600);
+  confetti();
+  try{ if(navigator.vibrate) navigator.vibrate([20,30,40]); }catch(e){}
+  toast(`🎉 오늘의 운명은 "${TODAY.main.n}"!`);
+  btn.classList.remove('rolling'); btn.textContent = '🎲 다시 뽑기'; ROLLING = false;
+}
+document.getElementById('btnReroll').onclick = rerollFun;
 
 document.getElementById('mCnt').textContent = D.meta.count;
 const up = new Date(D.meta.updated);
