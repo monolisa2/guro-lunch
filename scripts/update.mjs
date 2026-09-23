@@ -1,0 +1,263 @@
+// 한신아이티타워 점심지도 - 데이터 자동 갱신 (Node 20+ / GitHub Actions)
+// 실행: node scripts/update.mjs
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const CEN = { lat: 37.48249743, lon: 126.89445322 }; // 한신아이티타워
+const RADIUS = 520;
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+
+const hav = (lat, lon) => {
+  const R = 6371000, t = Math.PI / 180;
+  const dLat = (lat - CEN.lat) * t, dLon = (lon - CEN.lon) * t;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(CEN.lat * t) * Math.cos(lat * t) * Math.sin(dLon / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(a)));
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const T = (ms = 8000) => AbortSignal.timeout(ms);   // 모든 요청 타임아웃
+const STARTED = Date.now();
+const budgetLeft = () => 12 * 60 * 1000 - (Date.now() - STARTED); // 전체 12분 예산
+
+async function ksearch(q, page) {
+  const u = `https://search.map.kakao.com/mapsearch/map.daum?callback=cb&q=${encodeURIComponent(q)}&msFlag=A&sort=0&page=${page}`;
+  for (let try_ = 0; try_ < 3; try_++) {
+    try {
+      const r = await fetch(u, { headers: { referer: 'https://map.kakao.com/', 'user-agent': UA }, signal: T() });
+      const t = await r.text();
+      return JSON.parse(t.replace(/^\/\*\*\/cb\(/, '').replace(/\);?\s*$/, ''));
+    } catch (e) { await sleep(600); }
+  }
+  return { place: [] };
+}
+
+async function kdetail(id) {
+  for (let try_ = 0; try_ < 3; try_++) {
+    try {
+      const r = await fetch(`https://place-api.map.kakao.com/places/panel3/${id}`, {
+        headers: { pf: 'web', referer: `https://place.map.kakao.com/${id}`, origin: 'https://place.map.kakao.com', 'user-agent': UA },
+        signal: T()
+      });
+      if (!r.ok) { await sleep(400); continue; }
+      return await r.json();
+    } catch (e) { await sleep(600); }
+  }
+  return null;
+}
+
+const QUERIES = [
+  '구로디지털단지 음식점', '구로디지털단지 맛집', '구로동 한식', '구로동 중식', '구로동 일식', '구로동 분식',
+  '구로동 양식', '구로동 카페', '구로디지털단지 점심', '구로동 국밥', '구로동 돈까스', '구로동 김밥', '구로동 고기',
+  '구로동 백반', '구로동 칼국수', '구로동 초밥', '구로동 샐러드', '구로동 햄버거', '구로동 쌀국수', '구로동 뷔페',
+  '구로동 신규오픈', '구로디지털단지 새로생긴', '구로동 부대찌개', '구로동 순대국', '구로동 파스타', '구로동 덮밥',
+  '한신아이티타워 식당', '구로 지타워몰 식당', '에이스하이엔드 구로 식당', '코오롱디지털타워 식당', '구로동 회식'
+];
+
+const CAFE = ['커피전문점', '카페', '디저트카페', '제과,베이커리', '전통찻집', '북카페', '샌드위치'];
+const BAR = ['호프,요리주점', '실내포장마차', '일본식주점', '양꼬치'];
+const FF = ['패스트푸드', '햄버거', '치킨', '피자'];
+
+/* ---------- 1. 후보 수집 ---------- */
+const base = new Map();
+for (const q of QUERIES) {
+  for (let p = 1; p <= 6; p++) {
+    const j = await ksearch(q, p);
+    const arr = j.place || [];
+    if (!arr.length) break;
+    for (const pl of arr) {
+      const d = hav(+pl.lat, +pl.lon);
+      if (d <= RADIUS) base.set(pl.confirmid, {
+        id: pl.confirmid, name: pl.name, lat: +pl.lat, lon: +pl.lon, dist: d,
+        addr: pl.new_address || pl.address, tel: pl.tel, c2: pl.cate_name_depth2
+      });
+    }
+    await sleep(80);
+  }
+}
+console.log(`[1/3] 반경 ${RADIUS}m 후보 ${base.size}곳`);
+if (base.size < 50) { console.error('수집 결과가 비정상적으로 적음. 중단(기존 데이터 유지).'); process.exit(1); }
+
+/* ---------- 2. 상세(메뉴/가격/평점) ---------- */
+const ids = [...base.keys()];
+const details = {};
+const CONC = 6;
+for (let i = 0; i < ids.length; i += CONC) {
+  await Promise.all(ids.slice(i, i + CONC).map(async id => {
+    const j = await kdetail(id);
+    if (!j) return;
+    const s = j.summary || {};
+    details[id] = {
+      name: s.name, cat: s.category?.name, lat: s.point?.lat, lon: s.point?.lon,
+      addr: s.address?.disp, tel: s.phone_numbers?.[0]?.tel, photo: s.main_photo_url, status: s.status,
+      score: j.kakaomap_review?.score_set?.average_score, rc: j.kakaomap_review?.score_set?.review_count,
+      menus: (j.menu?.menus?.items || []).map(m => ({ n: m.name, p: m.price, ai: m.is_ai_mate ? 1 : 0, d: m.ai_mate_desc || '' }))
+    };
+  }));
+  await sleep(120);
+}
+console.log(`[2/4] 상세 수집 ${Object.keys(details).length}곳`);
+
+/* ---------- 3. 네이버 플레이스 (평점/리뷰수/플레이스ID) ---------- */
+function apolloState(h) {
+  const i = h.indexOf('window.__APOLLO_STATE__'); if (i < 0) return null;
+  const s = h.indexOf('{', i);
+  let d = 0, e = -1, ins = false, esc = false;
+  for (let k = s; k < h.length; k++) {
+    const c = h[k];
+    if (ins) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') ins = false; continue; }
+    if (c === '"') { ins = true; continue; }
+    if (c === '{') d++; else if (c === '}') { d--; if (d === 0) { e = k + 1; break; } }
+  }
+  try { return JSON.parse(h.slice(s, e)); } catch (err) { return null; }
+}
+const toInt = v => parseInt(String(v || '0').replace(/,/g, '')) || 0;
+const nvBulk = new Map();
+const NQ = [...QUERIES, '구로동 찌개', '구로동 커피', '구로동 포케', '구로동 도시락', '구로동 삼겹살', '구로동 냉면', '구로동 우동',
+  '구로동 카레', '구로동 마라탕', '구로동 김치찌개', '구로동 제육', '구로동 보쌈', '구로동 스테이크', '구로동 샤브샤브', '구로동 밥집',
+  '구로디지털단지역 맛집', '남구로역 맛집', '디지털로 272', '구로동 혼밥', '구로동 가성비', '구로동 브런치', '구로동 면요리'];
+let nvFail = 0;
+for (const q of NQ) {
+  if (nvFail >= 6 && nvBulk.size === 0) { console.log('  네이버 목록 응답 없음 -> 건너뜀'); break; }
+  if (budgetLeft() < 6 * 60 * 1000) break;
+  try {
+    const r = await fetch(`https://pcmap.place.naver.com/restaurant/list?query=${encodeURIComponent(q)}&x=${CEN.lon}&y=${CEN.lat}`,
+      { headers: { 'user-agent': UA, referer: 'https://map.naver.com/' }, signal: T(10000) });
+    if (!r.ok) { nvFail++; continue; }
+    const st = apolloState(await r.text());
+    if (!st) { nvFail++; continue; }
+    for (const k of Object.keys(st)) {
+      if (!k.startsWith('PlaceListBusinessesItem')) continue;
+      const o = st[k];
+      nvBulk.set(String(o.id), { id: String(o.id), name: o.name, x: +o.x, y: +o.y, vr: toInt(o.visitorReviewCount), br: toInt(o.blogCafeReviewCount), sc: o.visitorReviewScore ? +o.visitorReviewScore : null });
+    }
+  } catch (e) { nvFail++; }
+  await sleep(150);
+}
+console.log(`[3/4] 네이버 목록 ${nvBulk.size}곳 (실패 ${nvFail})`);
+
+async function nInstant(q) {
+  try {
+    const r = await fetch(`https://map.naver.com/p/api/search/instant-search?query=${encodeURIComponent(q)}&coords=${CEN.lat},${CEN.lon}&lang=ko`,
+      { headers: { 'user-agent': UA, referer: 'https://map.naver.com/' }, signal: T(6000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j.place || [];
+  } catch (e) { return null; }
+}
+const gdist = (lat1, lon1, lat2, lon2) => {
+  const R = 6371000, t = Math.PI / 180;
+  const dLat = (lat2 - lat1) * t, dLon = (lon2 - lon1) * t;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * t) * Math.cos(lat2 * t) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+};
+const naver = {};
+
+// (a) 목록 데이터로 좌표+이름 매칭 (해외 러너에서도 동작)
+const nnorm = s => (s || '').replace(/\s+/g, '').replace(/[()·・.,'"&#-]/g, '').toLowerCase();
+const ncore = s => nnorm(s).replace(/(구로디지털단지역|구로디지털단지|구로디지털역|구로디지털|구로지타워몰|지타워몰|g타워몰|구로하이엔드|구로에이스하이엔드\d?차?|코오롱디지털|코오롱타워|구디|구로)(\d호)?(직영)?점?$/, '').replace(/(본점|직영점|점)$/, '');
+const NB = [...nvBulk.values()];
+let bulkHit = 0;
+for (const [id, b] of base) {
+  const d = details[id]; if (!d) continue;
+  const name = d.name || b.name, lat = d.lat || b.lat, lon = d.lon || b.lon;
+  const a1 = nnorm(name), a2 = ncore(name);
+  let best = null;
+  for (const n of NB) {
+    if (gdist(lat, lon, n.y, n.x) > 90) continue;
+    const b1 = nnorm(n.name), b2 = ncore(n.name);
+    if (a1 === b1 || (a2 && b2 && (a2 === b2 || (a2.length >= 2 && b2.length >= 2 && (a2.includes(b2) || b2.includes(a2)))))) {
+      if (!best || n.vr > best.vr) best = n;
+    }
+  }
+  if (best) { naver[id] = { nid: best.id, nvr: best.vr, nbr: best.br, nsc: best.sc }; bulkHit++; }
+}
+console.log(`[3/4] 네이버 목록 매칭 ${bulkHit}/${base.size}`);
+
+// (b) 목록에 없는 곳만 개별 검색 (국내 IP에서만 동작할 수 있음)
+let nvHit = 0, nvErr = 0, nvTried = 0;
+for (const [id, b] of base) {
+  const d = details[id]; if (!d) continue;
+  if (naver[id]) continue;
+  if (nvTried >= 15 && nvHit === 0) { console.log('  개별 검색 매칭 0 -> 건너뜀(이전 값 유지)'); break; }
+  if (nvErr >= 25 && nvErr > nvHit) { console.log('  네이버 검색 오류 과다 -> 중단(이전 값 유지)'); break; }
+  if (budgetLeft() < 90 * 1000) { console.log('  시간 예산 소진 -> 중단(이전 값 유지)'); break; }
+  nvTried++;
+  const name = d.name || b.name;
+  const lat = d.lat || b.lat, lon = d.lon || b.lon;
+  let best = null;
+  for (const q of [name, name.replace(/\s*(구로디지털단지점|구로디지털점|구로점|본점|직영점)$/, '')]) {
+    const arr = await nInstant(q);
+    if (arr === null) { nvErr++; break; }
+    best = arr.find(p => gdist(lat, lon, +p.y, +p.x) <= 120);
+    if (best) break;
+    await sleep(50);
+  }
+  if (best) {
+    const bk = nvBulk.get(String(best.id));
+    naver[id] = { nid: String(best.id), nvr: toInt(best.review?.count), nbr: bk?.br || 0, nsc: bk?.sc || null };
+    nvHit++;
+  }
+  await sleep(50);
+}
+console.log(`[3/4] 개별 검색 추가 매칭 ${nvHit} (총 ${Object.keys(naver).length})`);
+
+/* ---------- 4. 기존 데이터 diff + 파일 쓰기 ---------- */
+let prevIds = new Set();
+const prevById = new Map();
+try {
+  const old = await fs.readFile(path.join(ROOT, 'data.js'), 'utf8');
+  const oj = JSON.parse(old.replace(/^window\.LUNCH_DATA\s*=\s*/, '').replace(/;\s*$/, ''));
+  oj.list.forEach(r => { prevIds.add(r.id); prevById.set(r.id, r); });
+} catch (e) { /* 최초 실행 */ }
+
+const list = [], added = [];
+for (const [id, b] of base) {
+  const d = details[id];
+  if (!d) continue;
+  if (d.status && d.status !== 'Y') continue;
+  const name = d.name || b.name;
+  const cat = d.cat || b.c2 || '음식점';
+  let kind = '밥집';
+  if (cat === '구내식당') kind = '구내식당';
+  else if (CAFE.includes(cat)) kind = '카페';
+  else if (BAR.includes(cat)) kind = '술집';
+  else if (FF.includes(cat)) kind = '패스트푸드';
+
+  const menus = (d.menus || []).filter(m => m.p > 0);
+  const lunch = menus.filter(m => m.p >= 4000 && m.p <= 20000).map(m => m.p).sort((x, y) => x - y);
+  const med = lunch.length ? lunch[Math.floor(lunch.length / 2)] : null;
+  const isNew = prevIds.size > 0 && !prevIds.has(id);
+  if (isNew) added.push(`${name}(${cat}, ${b.dist}m${med ? ', ' + med.toLocaleString('ko-KR') + '원' : ''})`);
+
+  list.push({
+    id, n: name, c: cat, k: kind, d: b.dist,
+    la: +(d.lat || b.lat).toFixed(6), lo: +(d.lon || b.lon).toFixed(6),
+    a: d.addr || b.addr, t: d.tel || b.tel || '',
+    s: d.score || null, rc: d.rc || 0, ph: d.photo || '',
+    pr: med, pmin: lunch[0] || null, pmax: lunch[lunch.length - 1] || null,
+    m: menus.slice().sort((x, y) => y.ai - x.ai).slice(0, 14).map(m => ({ n: m.n, p: m.p, d: (m.d || '').slice(0, 60) })),
+    nw: isNew ? 1 : 0,
+    // 네이버: 이번에 못 가져오면 직전 값 유지
+    nid: naver[id]?.nid || prevById.get(id)?.nid || null,
+    nvr: naver[id]?.nvr || prevById.get(id)?.nvr || 0,
+    nbr: naver[id]?.nbr || prevById.get(id)?.nbr || 0,
+    nsc: naver[id]?.nsc || prevById.get(id)?.nsc || null
+  });
+}
+list.sort((a, b) => a.d - b.d);
+
+const payload = {
+  meta: { center: CEN, building: '한신아이티타워', address: '서울 구로구 디지털로 272', radius: RADIUS, updated: new Date().toISOString(), count: list.length, naverMatched: list.filter(r => r.nid).length },
+  list
+};
+const dataJs = 'window.LUNCH_DATA = ' + JSON.stringify(payload) + ';';
+await fs.writeFile(path.join(ROOT, 'data.js'), dataJs, 'utf8');
+
+const tpl = await fs.readFile(path.join(ROOT, 'template.html'), 'utf8');
+await fs.writeFile(path.join(ROOT, 'index.html'), tpl.replace('<script src="data.js"></script>', '<script>' + dataJs + '</script>'), 'utf8');
+
+const closed = [...prevIds].filter(id => !base.has(id)).length;
+const summary = `[4/4] 총 ${list.length}곳 / 신규 ${added.length} / 제외 ${closed} / 네이버 매칭 ${payload.meta.naverMatched}\n신규: ${added.length ? added.join(' · ') : '없음'}`;
+console.log(summary);
+await fs.writeFile(path.join(ROOT, 'last-run.txt'), `${new Date().toISOString()}\n${summary}\n`, 'utf8');
