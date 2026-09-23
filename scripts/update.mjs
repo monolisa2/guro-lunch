@@ -81,7 +81,11 @@ console.log(`[1/4] 반경 ${RADIUS}m 후보 ${base.size}곳`);
 
 /* ---------- 1.5 직원 추가 요청 처리 (Firebase /requests) ---------- */
 const FBURL = 'https://guro-lunch-default-rtdb.asia-southeast1.firebasedatabase.app';
-const nn = s => (s || '').replace(/\s+/g, '').toLowerCase();
+const nn = s => (s || '').replace(/\s+/g, '').replace(/[()\[\]·・.,'"&#-]/g, '').toLowerCase();
+// 오타 허용: 2글자 조각(bigram) 겉침 범위 (0~1)
+const bigrams = s => { const o = new Map(); for (let i = 0; i < s.length - 1; i++) { const g = s.slice(i, i + 2); o.set(g, (o.get(g) || 0) + 1); } return o; };
+const sim = (a, b) => { if (!a || !b) return 0; if (a.length < 2 || b.length < 2) return a === b ? 1 : 0; const A = bigrams(a), B = bigrams(b); let hit = 0; for (const [g, c] of A) hit += Math.min(c, B.get(g) || 0); return (2 * hit) / ((a.length - 1) + (b.length - 1)); };
+const nameMatch = (cand, want) => { const c = nn(cand), w = nn(want); if (!c || !w) return 0; if (c === w) return 1; if (c.includes(w) || w.includes(c)) return 0.9; return sim(c, w); };
 let reqs = {};
 try { reqs = (await (await fetch(FBURL + '/requests.json', { signal: T() })).json()) || {}; } catch (e) { }
 const pendingReqs = Object.entries(reqs).filter(([, r]) => r && r.status === 'pending');
@@ -89,23 +93,30 @@ const reqLog = [];
 for (const [qid, r] of pendingReqs) {
   let best = null, reason = '';
   const tryQ = [r.name, '구로디지털단지 ' + r.name, '구로동 ' + r.name, (r.hint ? r.hint + ' ' + r.name : null)].filter(Boolean);
-  for (const q of tryQ) {
+  // 이미 확정된 카카오 ID가 있으면 그걸 바로 사용
+  if (r.rid && /^\d+$/.test(String(r.rid))) {
+    const j = await ksearch(r.name, 1);
+    const hit = (j.place || []).find(p => p.confirmid === String(r.rid));
+    if (hit) best = { p: hit, d: hav(+hit.lat, +hit.lon), score: 1 };
+  }
+  for (const q of (best ? [] : tryQ)) {
     const j = await ksearch(q, 1);
-    const cands = (j.place || []).map(p => ({ p, d: hav(+p.lat, +p.lon) }))
-      .filter(x => x.p.cate_name_depth1 === '음식점' && (nn(x.p.name).includes(nn(r.name)) || nn(r.name).includes(nn(x.p.name))));
-    const near = cands.filter(x => x.d <= RADIUS).sort((a, b) => a.d - b.d)[0];
+    const cands = (j.place || []).map(p => ({ p, d: hav(+p.lat, +p.lon), score: nameMatch(p.name, r.name) }))
+      .filter(x => x.p.cate_name_depth1 === '음식점' && x.score >= 0.55);
+    // 반경 안에서: 이름 유사도 우선, 같으면 가까운 순
+    const near = cands.filter(x => x.d <= RADIUS).sort((a, b) => (b.score - a.score) || (a.d - b.d))[0];
     if (near) { best = near; break; }
-    if (!best && cands.length) { best = cands.sort((a, b) => a.d - b.d)[0]; reason = 'far'; }
+    if (!best && cands.length) { best = cands.sort((a, b) => (b.score - a.score) || (a.d - b.d))[0]; reason = 'far'; }
     await sleep(80);
   }
   let patch;
   if (best && best.d <= RADIUS) {
     const pl = best.p;
     if (!base.has(pl.confirmid)) base.set(pl.confirmid, { id: pl.confirmid, name: pl.name, lat: +pl.lat, lon: +pl.lon, dist: best.d, addr: pl.new_address || pl.address, tel: pl.tel, c2: pl.cate_name_depth2, req: 1 });
-    patch = { status: 'added', rid: pl.confirmid, matched: pl.name, dist: best.d, doneAt: Date.now() };
-    reqLog.push(`✅ ${r.name} → ${pl.name} (${best.d}m)`);
+    patch = { status: 'added', rid: pl.confirmid, matched: pl.name, addr: pl.new_address || pl.address || '', dist: best.d, score: Math.round((best.score || 0) * 100), doneAt: Date.now() };
+    reqLog.push(`✅ ${r.name} → ${pl.name} (${best.d}m, 유사도 ${patch.score}%)`);
   } else if (best) {
-    patch = { status: 'far', matched: best.p.name, dist: best.d, doneAt: Date.now() };
+    patch = { status: 'far', matched: best.p.name, addr: best.p.new_address || best.p.address || '', dist: best.d, score: Math.round((best.score || 0) * 100), doneAt: Date.now() };
     reqLog.push(`📏 ${r.name} → ${best.p.name} ${best.d}m (반경 밖)`);
   } else {
     patch = { status: 'notfound', doneAt: Date.now() };
