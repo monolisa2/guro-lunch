@@ -1008,10 +1008,12 @@ function openRequest(prefill){
   document.getElementById('epk').classList.add('on'); document.body.style.overflow='hidden';
   renderReqList();
   const nnq = s=>(s||'').replace(/\s+/g,'').replace(/[()\[\]·・.,'"&#-]/g,'').toLowerCase();
+  const isSub = (s,b)=>{ let i=0; for(const ch of b){ if(ch===s[i]) i++; if(i===s.length) return true; } return i===s.length; };
+  const score = (cand, want)=>{ const c=nnq(cand), w=nnq(want); if(!c||!w) return 0; if(c===w) return 1; if(c.includes(w)||(w.length>=3&&w.includes(c))) return .9; const toks=want.split(/\s+/).map(nnq).filter(t=>t.length>=2); if(toks.length>=2&&toks.every(t=>c.includes(t))) return .85; if(w.length>=4&&isSub(w,c)&&w.length/c.length>=.4) return .7; return 0; };
   const dupBox = document.getElementById('rqDup'), nameIn = document.getElementById('rqName');
   const checkDup = ()=>{
-    const q = nnq(nameIn.value); if(q.length<2){ dupBox.innerHTML=''; return; }
-    const hits = L.filter(r=>{ const n=nnq(r.n); return n.includes(q) || (q.length>=3 && q.includes(n)); }).slice(0,4);
+    const raw = nameIn.value.trim(); if(nnq(raw).length<2){ dupBox.innerHTML=''; return; }
+    const hits = L.map(r=>({r, s:score(r.n, raw)})).filter(x=>x.s>=.7).sort((a,b)=>(b.s-a.s)||(a.r.d-b.r.d)).slice(0,4).map(x=>x.r);
     dupBox.innerHTML = hits.length ? `<div class="rqdl">이미 리스트에 있는 가게</div>` + hits.map(r=>`<button class="rqd" data-id="${r.id}"><b>${esc(r.n)}</b><small>${r.c} · ${r.d}m</small><span>보기 ›</span></button>`).join('') : '';
     dupBox.querySelectorAll('.rqd').forEach(b=>b.onclick=()=>{ closeEmoji(); openModal(BYID[b.dataset.id]); });
   };
