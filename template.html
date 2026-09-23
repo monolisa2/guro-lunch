@@ -154,7 +154,12 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .pickimg{aspect-ratio:16/10;border-radius:16px;overflow:hidden;background:var(--card2)}
 @media(min-width:680px){.pickimg{aspect-ratio:1;border-radius:18px}}
 .pickimg img{width:100%;height:100%;object-fit:cover}
-.noimg{width:100%;height:100%;display:grid;place-items:center;font-size:44px;background:var(--noimg)}
+.noimg{width:100%;height:100%;display:grid;place-items:center;font-size:44px;background:var(--noimg);position:relative;overflow:hidden}
+.noimg.ph{background:linear-gradient(135deg,var(--ph1),var(--ph2))}
+.noimg.ph:before{content:"";position:absolute;width:140%;height:140%;left:-20%;top:-20%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.35),transparent 55%)}
+.noimg.ph .e{position:relative;filter:drop-shadow(0 4px 10px rgba(0,0,0,.18))}
+.noimg.ph .lb{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;font-weight:800;color:rgba(0,0,0,.45);letter-spacing:.2px}
+html.dark .noimg.ph .lb{color:rgba(255,255,255,.55)}
 .pickbody{display:flex;flex-direction:column;justify-content:center;min-width:0}
 .pickname{font-size:27px;font-weight:800;letter-spacing:-1px;line-height:1.15;word-break:keep-all}
 @media(min-width:680px){.pickname{font-size:34px}}
@@ -199,8 +204,20 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .seg button{padding:7px 12px;border-radius:9px;font-size:12px;font-weight:700;color:var(--tx3)}
 .seg button.on{background:var(--card);color:var(--tx);box-shadow:var(--shadow)}
 .rank-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:13px}
-@media(min-width:620px){.rank-grid{grid-template-columns:1fr 1fr}}
-@media(min-width:980px){.rank-grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:620px){.rank-grid{grid-template-columns:1fr 1fr}.rbox.main{grid-column:1/-1}}
+@media(min-width:980px){.rank-grid{grid-template-columns:repeat(4,1fr);grid-auto-rows:minmax(0,auto)}.rbox.main{grid-column:1/3;grid-row:1/3}}
+.rlist.scroll{max-height:292px;overflow-y:auto;padding-right:4px;scrollbar-width:thin;mask-image:linear-gradient(#000 calc(100% - 26px),transparent)}
+.rlist.scroll::-webkit-scrollbar{width:6px}.rlist.scroll::-webkit-scrollbar-thumb{background:var(--soft2);border-radius:3px}
+.rlist.scroll.short{mask-image:none}
+.rmore{font-size:11px;color:var(--tx3);text-align:center;padding:4px 0 0}
+.catrow{display:flex;align-items:center;gap:8px;padding:6px 4px}
+.catrow .cn{width:88px;flex:none;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.catrow .cb{flex:1;height:10px;border-radius:6px;background:var(--soft);overflow:hidden}
+.catrow .cb i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--ac),var(--ac2))}
+.catrow .cp{width:38px;text-align:right;font-size:12px;font-weight:800;color:var(--ac);flex:none}
+.bq{font-size:12.5px;line-height:1.45;word-break:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--tx)}
+.bq small{display:block;font-size:10.5px;color:var(--tx3);margin-top:2px;-webkit-line-clamp:1}
+.rli .rs.like{color:var(--t-wx-tx);background:var(--t-wx-bg);border:1px solid var(--t-wx-bd);padding:3px 7px;border-radius:8px;font-size:11.5px}
 .rbox{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:12px}
 .rbox h3{font-size:13px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .rbox h3 span{font-size:11px;color:var(--tx3);font-weight:600;margin-left:auto}
@@ -231,8 +248,10 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
 .radarbox svg{width:100%;height:auto;display:block}
 .rlegend{display:flex;gap:11px;flex-wrap:wrap;font-size:10.5px;color:var(--tx3);margin-top:9px}
 .rlegend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
-.feedlist{display:grid;grid-template-columns:1fr;gap:9px}
-@media(min-width:700px){.feedlist{grid-template-columns:1fr 1fr}}
+.feedlist{display:grid;grid-template-columns:1fr;gap:9px;max-height:372px;overflow-y:auto;padding-right:4px;scrollbar-width:thin}
+.feedlist::-webkit-scrollbar{width:6px}.feedlist::-webkit-scrollbar-thumb{background:var(--soft2);border-radius:3px}
+@media(min-width:700px){.feedlist{grid-template-columns:1fr 1fr;max-height:368px}}
+.flike{margin-left:auto;font-size:11px;font-weight:800;color:var(--t-wx-tx);white-space:nowrap}
 .fitem{display:flex;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:10px 12px;cursor:pointer}
 .fitem:active{background:var(--soft2)}
 .fav{width:34px;height:34px;border-radius:50%;background:var(--card2);display:grid;place-items:center;font-size:18px;flex:none}
@@ -361,6 +380,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .ci .ch b{color:var(--tx);font-weight:700;font-size:12.5px}
 .ci .ch .del{margin-left:auto;color:var(--tx3);font-size:11px;padding:3px 6px;border-radius:6px}
 .ci .cx{font-size:13.5px;margin-top:4px;line-height:1.5;word-break:break-word;white-space:pre-wrap}
+.ci .cf{display:flex;justify-content:flex-end;margin-top:6px}
+.clike{font-size:11.5px;font-weight:700;color:var(--tx3);background:var(--soft);border:1px solid var(--line);padding:5px 9px;border-radius:8px;min-height:28px}
+.clike.on{color:var(--t-wx-tx);background:var(--t-wx-bg);border-color:var(--t-wx-bd)}
+.clike:active{transform:scale(.93)}
 .cempty{font-size:12.5px;color:var(--tx3);text-align:center;padding:16px 0}
 
 .epk{position:fixed;inset:0;background:var(--overlay);z-index:200;display:none;align-items:flex-end;justify-content:center}
@@ -466,16 +489,17 @@ footer{margin-top:36px;padding:20px 0;border-top:1px solid var(--line);color:var
 
   <section class="rank" id="rank">
     <div class="rank-h">
-      <h2>🏆 월간 랭킹 <small id="rkMonth"></small></h2>
-      <div class="seg" id="rkSeg"><button data-m="0" class="on">이번 달</button><button data-m="-1">지난 달</button></div>
+      <h2>🏆 랭킹 <small id="rkMonth"></small></h2>
+      <div class="seg" id="rkSeg"><button data-p="m0" class="on">이번 달</button><button data-p="m1">지난 달</button><button data-p="q">3개월</button><button data-p="y">올해</button><button data-p="all">전체</button></div>
     </div>
     <div class="rank-grid">
-      <div class="rbox"><h3>🍽️ 이달의 맛집</h3><ol class="rlist" id="rkShop"></ol></div>
-      <div class="rbox"><h3>✍️ 후기왕</h3><ol class="rlist" id="rkWriter"></ol></div>
-      <div class="rbox"><h3>🏃 출석왕 <span>먹었어요 체크</span></h3><ol class="rlist" id="rkVisitor"></ol></div>
+      <div class="rbox main"><h3>🍽️ 맛집 TOP 10 <span>우리 회사 사람들이 고른</span></h3><ol class="rlist scroll" id="rkShop"></ol></div>
+      <div class="rbox"><h3>🔥 이번 주 핫플 <span>최근 7일</span></h3><ol class="rlist" id="rkHot"></ol></div>
+      <div class="rbox"><h3>💬 베스트 한 줄 <span>👍 많은 후기</span></h3><ol class="rlist" id="rkBest"></ol></div>
+      <div class="rbox"><h3>🍱 우리 회사 취향 <span>카테고리 분포</span></h3><div id="rkCat"></div></div>
       <div class="rbox"><h3>🆕 새로 생긴 곳</h3><ol class="rlist" id="rkNew"></ol></div>
     </div>
-    <div class="rnote">맛집 점수 = 🍽️먹었어요 ×3 + 후기 ×2 + 좋아요 반응 ×1 − 👎. 가게 상세에서 "오늘 여기서 먹었어요"를 누르면 랭킹에 반영돼요.</div>
+    <div class="rnote">맛집 점수 = 🍽️먹었어요 ×3 + 후기 ×2 + 좋아요 반응 ×1 − 👎. 가게 상세에서 "오늘 여기서 먹었어요"를 누르면 랭킹에 반영돼요. 후기 옆 👍를 누르면 베스트 한 줄에 올라가요.</div>
   </section>
 
   <details class="fold" id="foldFeed" open>
@@ -681,9 +705,14 @@ function pickToday(){
   }
   return { main: sel[0], alts: sel.slice(1,4), rnd, wcats };
 }
+const PHC = {'한식':['#ffe3c4','#ffc38a'],'중국요리':['#ffd6d6','#ff9c9c'],'중식':['#ffd6d6','#ff9c9c'],'일식':['#d9ecff','#9fc6ff'],'초밥,롤':['#d9ecff','#9fc6ff'],'돈까스,우동':['#ffe9c2','#ffd27a'],'분식':['#ffe0e8','#ffb3c6'],'카페':['#e8dccf','#c9b39a'],'커피전문점':['#e8dccf','#c9b39a'],'샐러드':['#dff5d8','#a9e29a'],'베트남음식':['#e0f5ea','#a3e0c0'],'육류,고기':['#f5d9cf','#e6a898'],'찌개,전골':['#ffe0cc','#ffb08a'],'국밥':['#f3e6d3','#dcc39d'],'양식':['#fff0d6','#ffd9a0'],'피자':['#ffe6d1','#ffbf8f'],'햄버거':['#ffe9c8','#ffcf8a'],'치킨':['#fff1c9','#ffd98a']};
+function phTag(r, size, label){
+  const c = PHC[r.c] || ['#e9e4dc','#cfc6b8'];
+  return `<div class="noimg ph" style="--ph1:${c[0]};--ph2:${c[1]};font-size:${size}px"><span class="e">${emo(r.c)}</span>${label?`<span class="lb">${esc(r.c)}</span>`:''}</div>`;
+}
 function imgTag(r, size){
-  return r.ph ? `<img loading="lazy" src="${r.ph}" alt="" onerror="this.outerHTML='<div class=noimg style=font-size:${size}px>${emo(r.c)}</div>'">`
-              : `<div class="noimg" style="font-size:${size}px">${emo(r.c)}</div>`;
+  return r.ph ? `<img loading="lazy" src="${r.ph}" alt="" data-c="${esc(r.c)}" onerror="this.outerHTML=phTag(BYID['${r.id}'],${size},${size>=34})">`
+              : phTag(r, size, size>=34);
 }
 function renderToday(){
   TODAY = pickToday();
@@ -754,18 +783,18 @@ async function fbPut(p, b){ try{ return (await fetch(FB+p+'.json',{method:'PUT',
 async function fbDel(p){ try{ return (await fetch(FB+p+'.json',{method:'DELETE'})).ok; }catch(e){ return false; } }
 const REACTIONS = ['👍','🔥','😋','🍽️','💸','🫶','😐','👎'];
 const POS = ['👍','🔥','😋','🍽️','💸','🫶'];
-let STORE = { comments:{}, reactions:{}, visits:{}, requests:{} };
-let CMTCNT = {}, RK = {}, RK_MONTH = 0;
+let STORE = { comments:{}, reactions:{}, visits:{}, requests:{}, clikes:{} };
+let CMTCNT = {}, RK = {};
 
 async function loadAll(){
-  const [c, r, v, q] = await Promise.all([fbGet('/comments'), fbGet('/reactions'), fbGet('/visits'), fbGet('/requests')]);
-  STORE = { comments: c||{}, reactions: r||{}, visits: v||{}, requests: q||{} };
+  const [c, r, v, q, cl] = await Promise.all([fbGet('/comments'), fbGet('/reactions'), fbGet('/visits'), fbGet('/requests'), fbGet('/clikes')]);
+  STORE = { comments: c||{}, reactions: r||{}, visits: v||{}, requests: q||{}, clikes: cl||{} };
   if(document.getElementById('reqList')) renderReqList();
   CMTCNT = {}; const flat = [];
   for(const rid in STORE.comments){ const o = STORE.comments[rid]||{}; CMTCNT[rid] = Object.keys(o).length; for(const k in o) flat.push({rid, cid:k, ...o[k]}); }
   flat.sort((a,b)=>b.ts-a.ts);
-  renderFeed(flat.slice(0,12));
-  RK = calcRanking(0).shopRank;
+  renderFeed(flat.slice(0,40));
+  RK = calcRanking('m0').shopRank;
   renderRanking();
   render();
 }
@@ -774,53 +803,79 @@ function renderFeed(items){
   document.getElementById('feedCnt').textContent = items.length? `(${items.length})` : '';
   const el = document.getElementById('feed');
   if(!items.length){ el.innerHTML = '<div class="cempty">아직 후기가 없어요. 첫 후기를 남겨보세요 🙌</div>'; return; }
-  el.innerHTML = items.map(it=>{ const r = BYID[it.rid]; return `<div class="fitem" data-rid="${it.rid}"><div class="fav">${it.emoji||'🙂'}</div><div class="fbody"><div class="fmeta"><span class="shop">${r?esc(r.n):'알 수 없는 가게'}</span><span class="nick">${esc(it.nick)}</span><span>·</span><span>${ago(it.ts)}</span></div><div class="ftext">${esc(it.text)}</div></div></div>`; }).join('');
+  el.innerHTML = items.map(it=>{ const r = BYID[it.rid]; return `<div class="fitem" data-rid="${it.rid}"><div class="fav">${it.emoji||'🙂'}</div><div class="fbody"><div class="fmeta"><span class="shop">${r?esc(r.n):'알 수 없는 가게'}</span><span class="nick">${esc(it.nick)}</span><span>·</span><span>${ago(it.ts)}</span>${(n=>n?`<span class="flike">👍 ${n}</span>`:'')(Object.keys((STORE.clikes[it.rid]||{})[it.cid]||{}).length)}</div><div class="ftext">${esc(it.text)}</div></div></div>`; }).join('');
   el.querySelectorAll('.fitem').forEach(e=>e.onclick=()=>{ const r=BYID[e.dataset.rid]; if(r) openModal(r); });
 }
 
-/* ======================= 월간 랭킹 ======================= */
-function monthRange(off){
-  const n = new Date(); const s = new Date(n.getFullYear(), n.getMonth()+off, 1); const e = new Date(n.getFullYear(), n.getMonth()+off+1, 1);
-  return { s:s.getTime(), e:e.getTime(), label:`${s.getFullYear()}년 ${s.getMonth()+1}월`, ym:`${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}` };
+/* ======================= 랭킹 ======================= */
+let RK_PERIOD = 'm0';
+function periodRange(p){
+  const n = new Date(); const y = n.getFullYear(), mo = n.getMonth();
+  const mon = (yy,mm)=>new Date(yy,mm,1).getTime();
+  if(p==='m0') return { s:mon(y,mo), e:mon(y,mo+1), label:`${y}년 ${mo+1}월`, kind:'m0' };
+  if(p==='m1') return { s:mon(y,mo-1), e:mon(y,mo), label:`${new Date(y,mo-1,1).getFullYear()}년 ${((mo+11)%12)+1}월`, kind:'m1' };
+  if(p==='q')  return { s:mon(y,mo-2), e:Date.now()+1, label:`최근 3개월`, kind:'q' };
+  if(p==='y')  return { s:mon(y,0), e:Date.now()+1, label:`${y}년 전체`, kind:'y' };
+  return { s:0, e:Date.now()+1, label:'전체 기간', kind:'all' };
 }
-function calcRanking(off){
-  const { s, e } = monthRange(off);
-  const inM = ts => typeof ts==='number' && ts>=s && ts<e;
-  const shop = {}, writer = {}, visitor = {};
-  const S = rid => (shop[rid] ||= { v:0, c:0, p:0, n:0 });
-  for(const rid in STORE.visits){ for(const k in STORE.visits[rid]){ const x = STORE.visits[rid][k]; if(!inM(x.ts)) continue; S(rid).v++; const w = (visitor[x.uid] ||= {n:0, nick:x.nick, emoji:x.emoji, ts:0}); w.n++; if(x.ts>w.ts){ w.ts=x.ts; w.nick=x.nick||w.nick; w.emoji=x.emoji||w.emoji; } } }
-  for(const rid in STORE.comments){ for(const k in STORE.comments[rid]){ const x = STORE.comments[rid][k]; if(!inM(x.ts)) continue; S(rid).c++; const w = (writer[x.uid] ||= {n:0, nick:x.nick, emoji:x.emoji, ts:0}); w.n++; if(x.ts>w.ts){ w.ts=x.ts; w.nick=x.nick; w.emoji=x.emoji; } } }
-  for(const rid in STORE.reactions){ const byE = STORE.reactions[rid]||{}; for(const encE in byE){ let em = encE; try{ em = decodeURIComponent(encE); }catch(_){} for(const uid in byE[encE]){ if(!inM(byE[encE][uid])) continue; if(POS.includes(em)) S(rid).p++; else if(em==='👎') S(rid).n++; } } }
-  const shops = Object.entries(shop).filter(([id])=>BYID[id]).map(([id,x])=>({ id, ...x, score: x.v*3 + x.c*2 + x.p - x.n })).filter(x=>x.score>0).sort((a,b)=>b.score-a.score || b.v-a.v);
+const monthRange = off => periodRange(off===0?'m0':'m1'); // 호환용
+function statsIn(s, e){
+  const inR = ts => typeof ts==='number' && ts>=s && ts<e;
+  const shop = {}; const S = rid => (shop[rid] ||= { v:0, c:0, p:0, n:0 });
+  for(const rid in STORE.visits) for(const k in STORE.visits[rid]){ const x=STORE.visits[rid][k]; if(inR(x.ts)) S(rid).v++; }
+  for(const rid in STORE.comments) for(const k in STORE.comments[rid]){ const x=STORE.comments[rid][k]; if(inR(x.ts)) S(rid).c++; }
+  for(const rid in STORE.reactions){ const byE = STORE.reactions[rid]||{}; for(const encE in byE){ let em=encE; try{ em=decodeURIComponent(encE); }catch(_){} for(const uid in byE[encE]){ const v = byE[encE][uid]; const ts = typeof v==='number'? v : (v===true ? s : 0); if(!inR(ts)) continue; if(POS.includes(em)) S(rid).p++; else if(em==='👎') S(rid).n++; } } }
+  return Object.entries(shop).filter(([id])=>BYID[id]).map(([id,x])=>({ id, ...x, score: x.v*3 + x.c*2 + x.p - x.n })).filter(x=>x.score>0).sort((a,b)=>b.score-a.score || b.v-a.v || b.c-a.c);
+}
+function calcRanking(p){
+  const { s, e } = periodRange(typeof p==='number' ? (p===0?'m0':'m1') : p);
+  const shops = statsIn(s, e);
   const shopRank = {}; shops.slice(0,10).forEach((x,i)=>shopRank[x.id]=i+1);
-  const top = obj => Object.entries(obj).map(([uid,x])=>({uid,...x})).sort((a,b)=>b.n-a.n || b.ts-a.ts).slice(0,5);
-  return { shops: shops.slice(0,5), writers: top(writer), visitors: top(visitor), shopRank };
+  // 베스트 한 줄: 기간 내 후기 중 👍 많은 순
+  const best = [];
+  for(const rid in STORE.comments) for(const cid in STORE.comments[rid]){ const c = STORE.comments[rid][cid]; if(!(c.ts>=s && c.ts<e)) continue; const likes = Object.keys((STORE.clikes[rid]||{})[cid]||{}).length; best.push({ rid, cid, ...c, likes }); }
+  best.sort((a,b)=>b.likes-a.likes || b.ts-a.ts);
+  // 취향 분포
+  const cat = {}; let tot = 0;
+  for(const x of shops){ const c = BYID[x.id].c; cat[c] = (cat[c]||0) + x.score; tot += x.score; }
+  const cats = Object.entries(cat).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([c,v])=>({ c, v, pct: tot? Math.round(v/tot*100) : 0 }));
+  return { shops: shops.slice(0,10), shopRank, best: best.slice(0,5), cats, tot, range:{s,e} };
 }
 const medal = i => i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
+const rimg = r => r.ph ? `<img src="${r.ph}" alt="" loading="lazy">` : emo(r.c);
 function renderRanking(){
-  const off = RK_MONTH, R = calcRanking(off), m = monthRange(off);
-  document.getElementById('rkMonth').textContent = m.label;
-  const li = (i, icon, title, sub, score, id) => `<li class="rli ${i===0?'first':''} ${id?'click':''}" ${id?`data-id="${id}"`:''}><span class="rk ${i<3?'m':''}">${medal(i)}</span><span class="ri">${icon}</span><div class="rt"><b>${title}</b><small>${sub}</small></div>${score!==''?`<span class="rs">${score}</span>`:''}</li>`;
-  // 맛집
-  let h = '';
+  const p = RK_PERIOD, R = calcRanking(p), pr = periodRange(p);
+  document.getElementById('rkMonth').textContent = pr.label;
+  const li = (i, icon, title, sub, score, id, cls='') => `<li class="rli ${i===0?'first':''} ${id?'click':''}" ${id?`data-id="${id}"`:''}><span class="rk ${i<3?'m':''}">${medal(i)}</span><span class="ri">${icon}</span><div class="rt"><b>${title}</b><small>${sub}</small></div>${score!==''?`<span class="rs ${cls}">${score}</span>`:''}</li>`;
+  const parts = x => { const a=[]; if(x.v) a.push(`🍽️${x.v}`); if(x.c) a.push(`💬${x.c}`); if(x.p) a.push(`👍${x.p}`); return a.join(' '); };
+  // 1) 맛집 TOP 10
+  const shopEl = document.getElementById('rkShop');
   if(R.shops.length){
-    h = R.shops.map((x,i)=>{ const r = BYID[x.id]; const parts=[]; if(x.v) parts.push(`🍽️${x.v}`); if(x.c) parts.push(`💬${x.c}`); if(x.p) parts.push(`👍${x.p}`); return li(i, r.ph?`<img src="${r.ph}" alt="">`:emo(r.c), esc(r.n), `${r.c} · ${r.d}m · ${parts.join(' ')}`, x.score+'점', r.id); }).join('');
+    shopEl.innerHTML = R.shops.map((x,i)=>{ const r=BYID[x.id]; return li(i, rimg(r), esc(r.n), `${r.c} · ${r.d<=30?'건물 안':r.d+'m'} · ${parts(x)}`, x.score+'점', r.id); }).join('');
+    shopEl.classList.toggle('short', R.shops.length<=5);
   } else {
-    const ref = L.filter(r=>(r.k==='밥집')&&r.d<=350).sort((a,b)=>(b.nvr||0)-(a.nvr||0)).slice(0,3);
-    h = `<div class="rempty">${off===0?'이번 달 기록이 아직 없어요. 먼저 먹고 체크하면 1등! 🥇':'지난달 기록이 없어요.'}</div>` + (off===0?`<div class="rsub">참고 · 동네 인기 (네이버 리뷰)</div>`+ref.map((r,i)=>li(i, r.ph?`<img src="${r.ph}" alt="">`:emo(r.c), esc(r.n), `${r.c} · ${r.d}m`, (r.nvr||0).toLocaleString(), r.id)).join(''):'');
+    const ref = L.filter(r=>(r.k==='밥집')&&r.d<=350).sort((a,b)=>(b.nvr||0)-(a.nvr||0)).slice(0,5);
+    shopEl.innerHTML = `<div class="rempty">${pr.kind==='m0'?'이번 달 기록이 아직 없어요. 먼저 먹고 체크하면 1등! 🥇':'이 기간 기록이 없어요.'}</div>` + (pr.kind==='m0'?`<div class="rsub">참고 · 동네 인기 (네이버 리뷰 많은 순)</div>`+ref.map((r,i)=>li(i, rimg(r), esc(r.n), `${r.c} · ${r.d}m`, (r.nvr||0).toLocaleString(), r.id)).join(''):'');
+    shopEl.classList.add('short');
   }
-  document.getElementById('rkShop').innerHTML = h;
-  // 후기왕
-  document.getElementById('rkWriter').innerHTML = R.writers.length ? R.writers.map((x,i)=>li(i, x.emoji||'🙂', esc(x.nick)+(x.uid===ME.uid?' (나)':''), `후기 ${x.n}개`, x.n+'개')).join('') : `<div class="rempty">아직 후기왕이 없어요. 후기 1개면 바로 1위 ✍️</div>`;
-  // 출석왕
-  document.getElementById('rkVisitor').innerHTML = R.visitors.length ? R.visitors.map((x,i)=>li(i, x.emoji||'🙂', esc(x.nick||'익명')+(x.uid===ME.uid?' (나)':''), `먹었어요 ${x.n}회`, x.n+'회')).join('') : `<div class="rempty">"오늘 여기서 먹었어요" 누르면 출석 체크돼요 🏃</div>`;
-  // 신규
-  const nw = L.filter(r=>r.fs && r.fs.slice(0,7)===m.ym).sort((a,b)=>b.fs.localeCompare(a.fs)).slice(0,5);
-  document.getElementById('rkNew').innerHTML = nw.length ? nw.map((r,i)=>`<li class="rli click" data-id="${r.id}"><span class="rk">🆕</span><span class="ri">${r.ph?`<img src="${r.ph}" alt="">`:emo(r.c)}</span><div class="rt"><b>${esc(r.n)}</b><small>${r.c} · ${r.d}m · ${r.fs.slice(5).replace('-','/')} 발견</small></div></li>`).join('')
-    : `<div class="rempty">${off===0?'이번 달 새로 발견된 곳은 아직 없어요. 매일 아침 자동으로 확인 중 👀':'지난달 새로 발견된 곳이 없어요.'}</div>`;
+  // 2) 이번 주 핫플 (최근 7일, 기간 선택과 무관)
+  const hot = statsIn(Date.now()-7*86400e3, Date.now()+1).slice(0,5);
+  document.getElementById('rkHot').innerHTML = hot.length ? hot.map((x,i)=>{ const r=BYID[x.id]; return li(i, rimg(r), esc(r.n), `${r.c} · ${parts(x)}`, x.score+'점', r.id); }).join('') : `<div class="rempty">이번 주엔 아직 기록이 없어요. 오늘 점심 먹고 체크하면 바로 1위 🔥</div>`;
+  // 3) 베스트 한 줄
+  const bestEl = document.getElementById('rkBest');
+  bestEl.innerHTML = R.best.length ? R.best.map((c,i)=>{ const r=BYID[c.rid]; return `<li class="rli click ${i===0?'first':''}" data-id="${c.rid}"><span class="rk ${i<3?'m':''}">${c.likes?medal(i):'·'}</span><span class="ri">${c.emoji||'🙂'}</span><div class="rt"><div class="bq">${esc(c.text)}<small>${r?esc(r.n):'?'} · ${esc(c.nick)}</small></div></div><span class="rs like">👍 ${c.likes}</span></li>`; }).join('') : `<div class="rempty">아직 후기가 없어요. 후기에 👍를 누르면 여기 올라와요 💬</div>`;
+  // 4) 취향 분포
+  const catEl = document.getElementById('rkCat');
+  catEl.innerHTML = R.cats.length ? R.cats.map(x=>`<div class="catrow"><span class="cn">${emo(x.c)} ${x.c}</span><div class="cb"><i style="width:${Math.max(6, Math.round(x.v/R.cats[0].v*100))}%"></i></div><span class="cp">${x.pct}%</span></div>`).join('') + `<div class="rmore">먹었어요·후기·반응을 합쳐서 계산</div>` : `<div class="rempty">기록이 쌓이면 우리 회사가 어떤 음식을 좋아하는지 보여줘요 🍱</div>`;
+  // 5) 새로 생긴 곳
+  const d0 = new Date(R.range.s), d1 = new Date(Math.min(R.range.e, Date.now()));
+  const ymd0 = d0.toISOString().slice(0,10), ymd1 = new Date(d1.getTime()+9*3600e3).toISOString().slice(0,10);
+  const nw = L.filter(r=>r.fs && r.fs>=ymd0 && r.fs<=ymd1).sort((a,b)=>b.fs.localeCompare(a.fs)).slice(0,5);
+  document.getElementById('rkNew').innerHTML = nw.length ? nw.map(r=>`<li class="rli click" data-id="${r.id}"><span class="rk">🆕</span><span class="ri">${rimg(r)}</span><div class="rt"><b>${esc(r.n)}</b><small>${r.c} · ${r.d}m · ${r.fs.slice(5).replace('-','/')} 발견</small></div></li>`).join('')
+    : `<div class="rempty">${pr.kind==='m0'?'이번 달 새로 발견된 곳은 아직 없어요. 매일 아침 자동으로 확인 중 👀':'이 기간에 새로 발견된 곳이 없어요.'}</div>`;
   document.querySelectorAll('#rank .rli.click').forEach(el=>el.onclick=()=>openModal(BYID[el.dataset.id]));
 }
-document.getElementById('rkSeg').onclick = e=>{ const b=e.target.closest('button'); if(!b) return; RK_MONTH=+b.dataset.m; document.querySelectorAll('#rkSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderRanking(); };
+document.getElementById('rkSeg').onclick = e=>{ const b=e.target.closest('button'); if(!b) return; RK_PERIOD=b.dataset.p; document.querySelectorAll('#rkSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderRanking(); };
 
 /* ======================= 리스트 ======================= */
 const KINDS = ['전체','밥집','카페','패스트푸드','구내식당','술집'];
@@ -965,7 +1020,7 @@ async function toggleVisit(){
     if(await fbPut(p, rec)){ (STORE.visits[r.id] ||= {})[vid] = rec; toast('맛점 체크 완료 🍽️ 후기도 남겨주면 +2점!'); }
     else toast('저장 실패 😢');
   }
-  renderVisit(); RK = calcRanking(0).shopRank; renderRanking(); render();
+  renderVisit(); RK = calcRanking('m0').shopRank; renderRanking(); render();
 }
 async function loadReactions(){
   const r = CUR; if(!r) return;
@@ -986,7 +1041,7 @@ async function toggleReaction(e){
   btn.querySelector('span').textContent = Math.max(0, +btn.querySelector('span').textContent + (on?-1:1));
   const ok = on ? await fbDel(p) : await fbPut(p, Date.now());
   if(!ok){ toast('저장 실패 😢'); }
-  await loadReactions(); RK = calcRanking(0).shopRank; renderRanking();
+  await loadReactions(); RK = calcRanking('m0').shopRank; renderRanking();
 }
 async function loadComments(){
   const r = CUR; if(!r) return;
@@ -997,7 +1052,8 @@ async function loadComments(){
   const jc = document.getElementById('jCnt'); if(jc) jc.textContent = arr.length;
   const el = document.getElementById('clist');
   const shown = SHOW_ALL_C ? arr : arr.slice(0,3);
-  el.innerHTML = arr.length ? shown.map(c=>`<div class="ci"><div class="av">${c.emoji||'🙂'}</div><div class="cb"><div class="ch"><b>${esc(c.nick)}</b><span>${ago(c.ts)}</span>${c.uid===ME.uid?`<button class="del" data-cid="${c.cid}">삭제</button>`:''}</div><div class="cx">${esc(c.text)}</div></div></div>`).join('')
+  const CL = STORE.clikes[r.id] || {};
+  el.innerHTML = arr.length ? shown.map(c=>{ const lk = CL[c.cid]||{}; const n = Object.keys(lk).length; const mine = !!lk[ME.uid]; return `<div class="ci"><div class="av">${c.emoji||'🙂'}</div><div class="cb"><div class="ch"><b>${esc(c.nick)}</b><span>${ago(c.ts)}</span>${c.uid===ME.uid?`<button class="del" data-cid="${c.cid}">삭제</button>`:''}</div><div class="cx">${esc(c.text)}</div><div class="cf"><button class="clike ${mine?'on':''}" data-cid="${c.cid}">👍 <span>${n||'공감'}</span></button></div></div></div>`; }).join('')
     : '<div class="cempty">아직 후기가 없어요. 첫 번째로 남겨보세요 🙌</div>';
   if(arr.length > 3){
     const tb = document.createElement('button'); tb.className = 'morebtn';
@@ -1006,6 +1062,16 @@ async function loadComments(){
     el.appendChild(tb);
   }
   el.querySelectorAll('.del').forEach(b=>b.onclick=async()=>{ if(!confirm('후기를 삭제할까요?')) return; await fbDel('/comments/'+r.id+'/'+b.dataset.cid); loadComments(); loadAll(); });
+  el.querySelectorAll('.clike').forEach(b=>b.onclick=async()=>{
+    const cid = b.dataset.cid, on = b.classList.contains('on'), p = '/clikes/'+r.id+'/'+cid+'/'+ME.uid;
+    b.classList.toggle('on', !on);
+    const ok = on ? await fbDel(p) : await fbPut(p, Date.now());
+    if(!ok){ toast('저장 실패 😢'); b.classList.toggle('on', on); return; }
+    STORE.clikes[r.id] ||= {}; STORE.clikes[r.id][cid] ||= {}; if(on) delete STORE.clikes[r.id][cid][ME.uid]; else STORE.clikes[r.id][cid][ME.uid] = Date.now();
+    const n = Object.keys(STORE.clikes[r.id][cid]).length; b.querySelector('span').textContent = n||'공감';
+    if(!on) toast('👍 공감! 베스트 한 줄에 반영돼요');
+    renderRanking();
+  });
 }
 async function sendComment(){
   const r = CUR; if(!r) return;
