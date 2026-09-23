@@ -386,6 +386,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .rqi .st.far,.rqi .st.notfound{background:var(--soft2);color:var(--tx2)}
 .rqi .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .rqi small{color:var(--tx3);font-size:11px;white-space:nowrap}
+.rqi.col{flex-direction:column;align-items:stretch;gap:5px}
+.rqi1{display:flex;gap:8px;align-items:center}
+.rqi2{font-size:11.5px;color:var(--tx3);line-height:1.45;word-break:keep-all}
+.rqi2 b{color:var(--tx)}
+.rqagain{margin-left:auto;font-size:11px;font-weight:700;color:var(--t-wx-tx);background:var(--t-wx-bg);border:1px solid var(--t-wx-bd);padding:4px 8px;border-radius:7px;white-space:nowrap}
+.rqdup:empty{display:none}
+.rqdl{font-size:11px;color:var(--tx3);font-weight:700;margin:-2px 0 5px}
+.rqd{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:8px 10px;border-radius:10px;background:var(--t-hot-bg);border:1px solid var(--t-hot-bd);margin-bottom:5px}
+.rqd b{font-size:13px;font-weight:700;color:var(--tx)}
+.rqd small{font-size:11px;color:var(--tx3);flex:1}
+.rqd span{font-size:11.5px;font-weight:700;color:var(--t-hot-tx)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + var(--safe-b));background:var(--tx);color:var(--bg);padding:12px 18px;border-radius:13px;font-size:13.5px;font-weight:600;z-index:300;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(-6px)}
 footer{margin-top:36px;padding:20px 0;border-top:1px solid var(--line);color:var(--tx3);font-size:11.5px;line-height:1.7}
@@ -987,14 +998,24 @@ function openRequest(prefill){
   document.getElementById('epkb').innerHTML = `
     <h4><span class="plus">+</span>맛집 추가 요청</h4>
     <div class="reqform">
-      <input id="rqName" maxlength="40" placeholder="가게 이름 (예: 송가직화제육)" value="${esc(prefill||'')}">
+      <input id="rqName" maxlength="40" placeholder="가게 이름 (예: 송가직화제육)" value="${esc(prefill||'')}" autocomplete="off">
+      <div class="rqdup" id="rqDup"></div>
       <input id="rqHint" maxlength="80" placeholder="위치 힌트 (선택, 예: 지타워몰 지하 / 디지털로26길)">
-      <div class="reqnote">매일 아침 9시 20분 자동 갱신 때 카카오맵에서 찾아서 반경 500m 안이면 바로 리스트에 올려요.<br>메뉴·가격·네이버 평점도 같이 붙어요. 이미 있는 가게는 검색으로 먼저 확인해주세요.</div>
+      <div class="reqnote"><b>띄어쓰기나 지점명은 달라도 괜찮아요.</b> 카카오맵에서 반경 500m 안 가게 중 이름이 가장 비슷한 곳을 골라요. 오타도 어느 정도 잡혀요.<br>이름이 흔한 가게(예: 우리집, 감동)는 <b>위치 힌트</b>를 꼭 넣어주세요.<br>매일 아침 9시 20분에 처리되고, 아래 "최근 요청"에서 <b>어떤 가게로 매칭됐는지 주소와 함께</b> 확인할 수 있어요. 틀리면 힌트를 넣어 다시 요청하면 돼요.</div>
       <div style="display:flex;gap:8px"><button class="btn g full" onclick="closeEmoji()">취소</button><button class="btn p full" id="rqSend">요청 보내기</button></div>
     </div>
     <div class="reqlist" id="reqList"></div>`;
   document.getElementById('epk').classList.add('on'); document.body.style.overflow='hidden';
   renderReqList();
+  const nnq = s=>(s||'').replace(/\s+/g,'').replace(/[()\[\]·・.,'"&#-]/g,'').toLowerCase();
+  const dupBox = document.getElementById('rqDup'), nameIn = document.getElementById('rqName');
+  const checkDup = ()=>{
+    const q = nnq(nameIn.value); if(q.length<2){ dupBox.innerHTML=''; return; }
+    const hits = L.filter(r=>{ const n=nnq(r.n); return n.includes(q) || (q.length>=3 && q.includes(n)); }).slice(0,4);
+    dupBox.innerHTML = hits.length ? `<div class="rqdl">이미 리스트에 있는 가게</div>` + hits.map(r=>`<button class="rqd" data-id="${r.id}"><b>${esc(r.n)}</b><small>${r.c} · ${r.d}m</small><span>보기 ›</span></button>`).join('') : '';
+    dupBox.querySelectorAll('.rqd').forEach(b=>b.onclick=()=>{ closeEmoji(); openModal(BYID[b.dataset.id]); });
+  };
+  nameIn.oninput = checkDup; checkDup();
   document.getElementById('rqSend').onclick = async ()=>{
     const name = document.getElementById('rqName').value.trim(), hint = document.getElementById('rqHint').value.trim();
     if(name.length<2){ toast('가게 이름을 2글자 이상 입력해주세요'); return; }
@@ -1014,7 +1035,14 @@ function renderReqList(){
   const el = document.getElementById('reqList'); if(!el) return;
   const arr = Object.entries(STORE.requests||{}).map(([id,r])=>({id,...r})).sort((a,b)=>b.ts-a.ts).slice(0,10);
   const ST = { pending:'대기중', added:'추가됨', far:'반경 밖', notfound:'못 찾음' };
-  el.innerHTML = arr.length ? `<h5>최근 요청</h5>` + arr.map(r=>`<div class="rqi"><span class="st ${r.status}">${ST[r.status]||r.status}</span><span class="nm">${esc(r.name)}${r.matched&&r.matched!==r.name?` → ${esc(r.matched)}`:''}</span><small>${r.status==='far'?r.dist+'m':r.status==='added'?'🙌':ago(r.ts)}</small></div>`).join('') : '';
+  const line2 = r => {
+    if(r.status==='pending') return `요청 ${ago(r.ts)} · 다음 갱신 때 처리`;
+    if(r.status==='added') return `→ <b>${esc(r.matched||r.name)}</b>${r.addr?` · ${esc(r.addr)}`:''}${r.dist!=null?` · ${r.dist}m`:''}${r.score?` · 이름 유사도 ${r.score}%`:''}`;
+    if(r.status==='far') return `가장 비슷한 곳: <b>${esc(r.matched||'')}</b>${r.addr?` · ${esc(r.addr)}`:''} · ${r.dist}m (500m 밖)`;
+    return '카카오맵에서 비슷한 이름을 못 찾았어요. 정확한 이름이나 위치 힌트를 넣어 다시 요청해주세요.';
+  };
+  el.innerHTML = arr.length ? `<h5>최근 요청</h5>` + arr.map(r=>`<div class="rqi col"><div class="rqi1"><span class="st ${r.status}">${ST[r.status]||r.status}</span><span class="nm">${esc(r.name)}</span>${r.status!=='pending'?`<button class="rqagain" data-n="${esc(r.name)}">다시 요청</button>`:''}</div><div class="rqi2">${line2(r)}</div></div>`).join('') : '';
+  el.querySelectorAll('.rqagain').forEach(b=>b.onclick=()=>{ document.getElementById('rqName').value = b.dataset.n; document.getElementById('rqName').dispatchEvent(new Event('input')); document.getElementById('rqHint').focus(); document.getElementById('rqHint').scrollIntoView({block:'center'}); toast('위치 힌트를 넣어서 다시 보내주세요'); });
 }
 document.getElementById('reqOpen').onclick = ()=>openRequest('');
 
