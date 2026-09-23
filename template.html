@@ -376,6 +376,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .reqform input::placeholder{color:var(--tx3)}
 .reqnote{font-size:12px;color:var(--tx3);line-height:1.55;background:var(--soft);border-radius:11px;padding:10px 12px}
 .reqlist{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:7px}
+.reqlist:empty{display:none}
+.plus{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--on-ac);font-size:16px;font-weight:900;line-height:1;vertical-align:-4px;margin-right:4px}
 .reqlist h5{font-size:12px;color:var(--tx3);font-weight:700;margin-bottom:3px}
 .rqi{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:8px 10px;background:var(--card);border:1px solid var(--line);border-radius:11px}
 .rqi .st{font-size:10.5px;font-weight:800;padding:3px 7px;border-radius:6px;white-space:nowrap}
@@ -479,7 +481,7 @@ footer{margin-top:36px;padding:20px 0;border-top:1px solid var(--line);color:var
 </header>
 
 <div class="sec">
-  <div class="sec-h"><h2>식당 리스트</h2><span id="cntTxt"></span><button class="reqbtn" id="reqOpen">➕ 맛집 추가 요청</button></div>
+  <div class="sec-h"><h2>식당 리스트</h2><span id="cntTxt"></span><button class="reqbtn" id="reqOpen">+ 맛집 추가 요청</button></div>
   <div class="ctrl">
     <div class="row1">
       <div class="search">🔍<input id="q" placeholder="가게 · 메뉴 검색 (순대국, 포케…)"></div>
@@ -835,7 +837,7 @@ function render(){
   const a = filtered();
   document.getElementById('cntTxt').textContent = `${a.length}곳`;
   const show = a.slice(0, state.limit);
-  document.getElementById('grid').innerHTML = show.length? show.map(card).join('') : `<div class="empty">조건에 맞는 곳이 없어요 🥲${state.q?`<br><br><button class="btn p" id="reqFromSearch">➕ "${esc(state.q)}" 추가 요청하기</button>`:''}</div>`;
+  document.getElementById('grid').innerHTML = show.length? show.map(card).join('') : `<div class="empty">조건에 맞는 곳이 없어요 🥲${state.q?`<br><br><button class="btn p" id="reqFromSearch">+ "${esc(state.q)}" 추가 요청하기</button>`:''}</div>`;
   const rfs = document.getElementById('reqFromSearch'); if(rfs) rfs.onclick = ()=>openRequest(state.q);
   const mb = document.getElementById('more');
   mb.style.display = a.length>state.limit ? 'block':'none';
@@ -983,7 +985,7 @@ async function sendComment(){
 /* ======================= 맛집 추가 요청 ======================= */
 function openRequest(prefill){
   document.getElementById('epkb').innerHTML = `
-    <h4>➕ 맛집 추가 요청</h4>
+    <h4><span class="plus">+</span>맛집 추가 요청</h4>
     <div class="reqform">
       <input id="rqName" maxlength="40" placeholder="가게 이름 (예: 송가직화제육)" value="${esc(prefill||'')}">
       <input id="rqHint" maxlength="80" placeholder="위치 힌트 (선택, 예: 지타워몰 지하 / 디지털로26길)">
