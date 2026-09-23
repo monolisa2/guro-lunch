@@ -653,9 +653,27 @@ function pickToday(){
   let pool = L.filter(r=>(r.k==='밥집'||r.k==='구내식당') && r.pr && ((r.nsc||r.s||4) >= 3.3))
     .map(r=>({ r, base: r.q + (wcats.includes(r.c)?1.5:0) + (RK[r.id]?0.5:0) - (r.d/520)*dp*0.6 }));
   const rnd = mulberry(todayKey() + seedOffset*7919 + (rule? rule.id.length*31 : 0));
-  pool.forEach(x => x.k = x.base + rnd()*1.35);
-  pool.sort((a,b)=>b.k-a.k);
-  const sel = pool.slice(0,4).map(x=>x.r);
+  pool.sort((a,b)=>b.base-a.base);
+  let sel;
+  if(seedOffset===0){
+    // 오늘의 기본 추천: 점수 높은 곳 중심 (약간의 난수)
+    pool.forEach(x => x.k = x.base + rnd()*1.35);
+    pool.sort((a,b)=>b.k-a.k);
+    sel = pool.slice(0,4).map(x=>x.r);
+  } else {
+    // 다시 뽑기: 상위 30곳에서 점수에 바른 확률로 샘플링, 직전 가게는 제외 → 매번 바뀜
+    const prev = TODAY?.main?.id;
+    let cands = pool.slice(0,30).filter(x=>x.r.id!==prev);
+    const top = cands[0]?.base ?? 0;
+    const T = 1.6;
+    let w = cands.map(x=>Math.exp((x.base-top)/T));
+    sel = [];
+    while(sel.length<4 && cands.length){
+      const sum = w.reduce((a,b)=>a+b,0); let u = rnd()*sum, idx = 0;
+      for(; idx<w.length-1; idx++){ u -= w[idx]; if(u<=0) break; }
+      sel.push(cands[idx].r); cands.splice(idx,1); w.splice(idx,1);
+    }
+  }
   return { main: sel[0], alts: sel.slice(1,4), rnd, wcats };
 }
 function imgTag(r, size){
@@ -1112,19 +1130,19 @@ async function rerollFun(){
   // 이미지를 미리 받아놓고, 로드된 것만 돌린다 (미리 받기 동안 사진을 흔들어서 준뱄 중임을 보여줌)
   imgEl.classList.add('rolling'); nameEl.classList.add('rolling');
   menuEl.innerHTML = '🥁 두구두구두구…'; descEl.textContent = ''; metaEl.innerHTML = '<span class="tag">오늘의 운명을 고르는 중</span>';
-  const cand = Array.from({length:26}, ()=>pool[Math.floor(Math.random()*pool.length)]);
+  const cand = Array.from({length:22}, ()=>pool[Math.floor(Math.random()*pool.length)]);
   const loaded = await Promise.race([
     Promise.all(cand.map(r=>new Promise(res=>{ const im=new Image(); im.onload=()=>res(r); im.onerror=()=>res(null); im.src=r.ph; }))),
-    new Promise(res=>setTimeout(()=>res(cand.map(()=>null)), 1800))
+    new Promise(res=>setTimeout(()=>res(cand.map(()=>null)), 1000))
   ]);
-  let seq = loaded.filter(Boolean).slice(0,18);
-  if(seq.length < 8) seq = cand.slice(0,18);
+  let seq = loaded.filter(Boolean).slice(0,14);
+  if(seq.length < 8) seq = cand.slice(0,14);
   let delay = 50;
   for(const r of seq){
     imgEl.innerHTML = `<img src="${r.ph}" alt="">`; nameEl.textContent = r.n;
     nameEl.classList.remove('tick'); void nameEl.offsetWidth; nameEl.classList.add('tick');
     await new Promise(res=>setTimeout(res, delay));
-    delay = Math.round(delay*1.13);
+    delay = Math.round(delay*1.15);
   }
   imgEl.classList.remove('rolling'); nameEl.classList.remove('rolling','tick');
   renderToday();
