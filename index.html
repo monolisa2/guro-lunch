@@ -234,6 +234,8 @@ html.dark .noimg.ph .lb{color:rgba(255,255,255,.55)}
 .rli .rt small{display:block;font-size:10.5px;color:var(--tx3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rli .rs{font-size:12px;font-weight:800;color:var(--ac);white-space:nowrap}
 .rli.first{background:linear-gradient(90deg,rgba(242,181,0,.14),transparent)}
+.rli.dim{opacity:.72}
+.rli .rs.dim{color:var(--tx3);font-weight:600;font-size:11px}
 .rempty{font-size:12px;color:var(--tx3);padding:10px 4px;line-height:1.55}
 .rsub{font-size:10.5px;color:var(--tx3);margin:6px 2px 4px;font-weight:700}
 .rnote{font-size:11px;color:var(--tx3);margin-top:10px;line-height:1.5}
@@ -834,7 +836,7 @@ function calcRanking(p){
   // 베스트 한 줄: 기간 내 후기 중 👍 많은 순
   const best = [];
   for(const rid in STORE.comments) for(const cid in STORE.comments[rid]){ const c = STORE.comments[rid][cid]; if(!(c.ts>=s && c.ts<e)) continue; const likes = Object.keys((STORE.clikes[rid]||{})[cid]||{}).length; best.push({ rid, cid, ...c, likes }); }
-  best.sort((a,b)=>b.likes-a.likes || b.ts-a.ts);
+  const bestLiked = best.filter(c=>c.likes>0); bestLiked.sort((a,b)=>b.likes-a.likes || b.ts-a.ts); best.length = 0; best.push(...bestLiked);
   // 취향 분포
   const cat = {}; let tot = 0;
   for(const x of shops){ const c = BYID[x.id].c; cat[c] = (cat[c]||0) + x.score; tot += x.score; }
@@ -842,7 +844,7 @@ function calcRanking(p){
   return { shops: shops.slice(0,10), shopRank, best: best.slice(0,5), cats, tot, range:{s,e} };
 }
 const medal = i => i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
-const rimg = r => r.ph ? `<img src="${r.ph}" alt="" loading="lazy">` : emo(r.c);
+const rimg = r => r.ph ? `<img src="${r.ph}" alt="" loading="lazy" onerror="this.outerHTML='${emo(r.c)}'">` : emo(r.c);
 function renderRanking(){
   const p = RK_PERIOD, R = calcRanking(p), pr = periodRange(p);
   document.getElementById('rkMonth').textContent = pr.label;
@@ -852,7 +854,12 @@ function renderRanking(){
   const shopEl = document.getElementById('rkShop');
   if(R.shops.length){
     shopEl.innerHTML = R.shops.map((x,i)=>{ const r=BYID[x.id]; return li(i, rimg(r), esc(r.n), `${r.c} · ${r.d<=30?'건물 안':r.d+'m'} · ${parts(x)}`, x.score+'점', r.id); }).join('');
-    shopEl.classList.toggle('short', R.shops.length<=5);
+    if(R.shops.length < 6){
+      const have = new Set(R.shops.map(x=>x.id));
+      const ref = L.filter(r=>r.k==='밥집' && r.d<=400 && !have.has(r.id)).sort((a,b)=>(b.nvr||0)-(a.nvr||0)).slice(0, 8-R.shops.length);
+      shopEl.innerHTML += `<div class="rsub">참고 · 동네 인기 (네이버 리뷰 많은 순) · 아직 우리 기록은 없는 곳</div>` + ref.map(r=>`<li class="rli click dim" data-id="${r.id}"><span class="rk">·</span><span class="ri">${rimg(r)}</span><div class="rt"><b>${esc(r.n)}</b><small>${r.c} · ${r.d<=30?'건물 안':r.d+'m'}${r.nsc?' · ★'+r.nsc:''}</small></div><span class="rs dim">리뷰 ${(r.nvr||0).toLocaleString()}</span></li>`).join('');
+    }
+    shopEl.classList.toggle('short', R.shops.length<=5 && shopEl.querySelectorAll('.rli').length<=5);
   } else {
     const ref = L.filter(r=>(r.k==='밥집')&&r.d<=350).sort((a,b)=>(b.nvr||0)-(a.nvr||0)).slice(0,5);
     shopEl.innerHTML = `<div class="rempty">${pr.kind==='m0'?'이번 달 기록이 아직 없어요. 먼저 먹고 체크하면 1등! 🥇':'이 기간 기록이 없어요.'}</div>` + (pr.kind==='m0'?`<div class="rsub">참고 · 동네 인기 (네이버 리뷰 많은 순)</div>`+ref.map((r,i)=>li(i, rimg(r), esc(r.n), `${r.c} · ${r.d}m`, (r.nvr||0).toLocaleString(), r.id)).join(''):'');
