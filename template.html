@@ -566,7 +566,7 @@ html.dark .fbrand .fl.dark{display:inline}
 
   <div class="hero">
     <div class="hero-head">
-      <div class="hero-tag"><span class="dot"></span><span id="todayLabel">오늘의 점심</span></div>
+      <div class="hero-tag"><span class="dot"></span><span id="todayLabel">추천 점심</span></div>
       <button class="reroll" id="btnReroll">🎲 다시 뽑기</button>
     </div>
     <div class="pickmain">
@@ -828,7 +828,7 @@ function renderToday(){
   TODAY = pickToday();
   const r = TODAY.main; if(!r) return;
   const d = new Date(), wd = ['일','월','화','수','목','금','토'][d.getDay()];
-  document.getElementById('todayLabel').textContent = `${d.getMonth()+1}/${d.getDate()}(${wd}) 오늘의 점심`;
+  document.getElementById('todayLabel').textContent = `${d.getMonth()+1}/${d.getDate()}(${wd}) 추천 점심`;
   document.getElementById('pkImg').innerHTML = imgTag(r, 44);
   document.getElementById('pkName').textContent = r.n;
   const rt = rating(r), meta = [];
