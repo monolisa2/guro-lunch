@@ -348,7 +348,7 @@ for (const [id, b] of base) {
     // 사진: 카카오 → 네이버 → 직전 값
     ph: d.photo || naver[id]?.img || prevById.get(id)?.ph || '',
     pr: med, pmin: lunch[0] || null, pmax: lunch[lunch.length - 1] || null,
-    m: menus.slice().sort((x, y) => y.ai - x.ai).slice(0, 14).map(m => ({ n: m.n, p: m.p, d: (m.d || '').slice(0, 60) })),
+    m: menus.slice().sort((x, y) => y.ai - x.ai).slice(0, 10).map(m => ({ n: m.n, p: m.p, ...(m.d ? { d: m.d.slice(0, 40) } : {}) })),
     nw: isNew ? 1 : 0,
     ...(isHS(cat) ? { hs: 1 } : {}),
     ...(fsd ? { fs: fsd } : {}),
