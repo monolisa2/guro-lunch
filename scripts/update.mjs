@@ -193,7 +193,7 @@ for (const q of NQ) {
     for (const k of Object.keys(st)) {
       if (!k.startsWith('PlaceListBusinessesItem')) continue;
       const o = st[k];
-      nvBulk.set(String(o.id), { id: String(o.id), name: o.name, x: +o.x, y: +o.y, vr: toInt(o.visitorReviewCount), br: toInt(o.blogCafeReviewCount), sc: o.visitorReviewScore ? +o.visitorReviewScore : null });
+      nvBulk.set(String(o.id), { id: String(o.id), name: o.name, x: +o.x, y: +o.y, vr: toInt(o.visitorReviewCount), br: toInt(o.blogCafeReviewCount), sc: o.visitorReviewScore ? +o.visitorReviewScore : null, img: o.imageUrl || '' });
     }
   } catch (e) { nvFail++; }
   await sleep(150);
@@ -234,7 +234,7 @@ for (const [id, b] of base) {
       if (!best || n.vr > best.vr) best = n;
     }
   }
-  if (best) { naver[id] = { nid: best.id, nvr: best.vr, nbr: best.br, nsc: best.sc }; bulkHit++; }
+  if (best) { naver[id] = { nid: best.id, nvr: best.vr, nbr: best.br, nsc: best.sc, img: best.img || '' }; bulkHit++; }
 }
 console.log(`[3/4] 네이버 목록 매칭 ${bulkHit}/${base.size}`);
 
@@ -259,7 +259,7 @@ for (const [id, b] of base) {
   }
   if (best) {
     const bk = nvBulk.get(String(best.id));
-    naver[id] = { nid: String(best.id), nvr: toInt(best.review?.count), nbr: bk?.br || 0, nsc: bk?.sc || null };
+    naver[id] = { nid: String(best.id), nvr: toInt(best.review?.count), nbr: bk?.br || 0, nsc: bk?.sc || null, img: bk?.img || '' };
     nvHit++;
   }
   await sleep(50);
@@ -312,7 +312,9 @@ for (const [id, b] of base) {
     id, n: name, c: cat, k: kind, d: b.dist,
     la: +(d.lat || b.lat).toFixed(6), lo: +(d.lon || b.lon).toFixed(6),
     a: d.addr || b.addr, t: d.tel || b.tel || '',
-    s: d.score || null, rc: d.rc || 0, ph: d.photo || '',
+    s: d.score || null, rc: d.rc || 0,
+    // 사진: 카카오 → 네이버 → 직전 값
+    ph: d.photo || naver[id]?.img || prevById.get(id)?.ph || '',
     pr: med, pmin: lunch[0] || null, pmax: lunch[lunch.length - 1] || null,
     m: menus.slice().sort((x, y) => y.ai - x.ai).slice(0, 14).map(m => ({ n: m.n, p: m.p, d: (m.d || '').slice(0, 60) })),
     nw: isNew ? 1 : 0,
